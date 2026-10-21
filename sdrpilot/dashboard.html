@@ -1380,6 +1380,7 @@ async function renderAgentSettings(){
     <div class="row"><label>Images</label><select id="ag-vision">${[["auto", "auto" + (st.vision_detected === true ? " (vision model detected - sending images)" : st.vision_detected === false ? " (no vision detected - not sending)" : st.vision ? " (sending images)" : " (not sending images)")], ["on", "always send tool images to the model"], ["off", "never send images"]].map(([v, l]) => `<option value="${v}" ${(st.vision_mode || "auto") === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
     <div class="row"><label>Context size</label><input type="number" id="ag-ctx" min="0" step="1024" value="${(st.settings||{}).context_tokens || ""}" placeholder="auto"><span id="ag-ctxinfo" style="font-size:12px;color:var(--dim)"></span></div>
     <div class="row"><label>Tool descriptions</label><select id="ag-tools">${[["auto","auto (short when the context is under 64k)"],["full","full"],["short","short + tool_help (saves ~4k tokens)"]].map(([v,l]) => `<option value="${v}" ${((st.settings||{}).tool_detail||"auto") === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+    <div class="row" style="align-items:flex-start"><label>Your instructions</label><textarea id="ag-ci" rows="7" style="flex:1;min-width:0;font:12px var(--mono)" placeholder="Added to the AI's system prompt: your station (SDR, antenna, location), how you like answers, what to avoid. Keep it short - it uses context on every request.">${esc((st.settings||{}).custom_instructions || "")}</textarea></div>
     <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-compact" ${(st.settings||{}).compact_history !== false ? "checked" : ""}> when the context is ~85% full, compact older tool results together with moving out old turns - in one go, so the model's prompt cache keeps working (full copies are kept; the AI can reread them)</label></div>
     <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-nudge" ${(st.settings||{}).nudge !== false ? "checked" : ""}> nudge the model when it says what it'll do but doesn't do it</label></div>
     <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-recover" ${(st.settings||{}).auto_recover !== false ? "checked" : ""}> when the context fills up or a reply is cut off (finish_reason "length"), shrink the prompt and carry on</label></div>
@@ -1395,7 +1396,8 @@ async function renderAgentSettings(){
   $("ag-save").onclick = async () => {
     const body = {action:"config", preset:$("ag-preset").value, base_url:$("ag-base").value, model:$("ag-model").value, vision_mode:$("ag-vision").value,
       context_tokens: $("ag-ctx").value || 0, tool_detail: $("ag-tools").value, compact_history: $("ag-compact").checked, nudge: $("ag-nudge").checked,
-      auto_recover: $("ag-recover").checked, stream: $("ag-stream").checked, max_reply_tokens: $("ag-maxout").value};
+      auto_recover: $("ag-recover").checked, stream: $("ag-stream").checked, max_reply_tokens: $("ag-maxout").value,
+      custom_instructions: $("ag-ci").value};
     if ($("ag-key").value.trim()) body.api_key = $("ag-key").value.trim();
     try { await postJ("api/agent", body, host.pid); toast("Saved"); renderAgentSettings(); } catch(e){ $("ag-msg").innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
   };

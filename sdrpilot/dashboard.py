@@ -742,7 +742,8 @@ class Dashboard:
                                      context_tokens=body.get("context_tokens"), tool_detail=body.get("tool_detail"),
                                      compact_history=body.get("compact_history"), nudge=body.get("nudge"),
                                      stream=body.get("stream"), auto_recover=body.get("auto_recover"),
-                                     max_reply_tokens=body.get("max_reply_tokens"))
+                                     max_reply_tokens=body.get("max_reply_tokens"),
+                                     custom_instructions=body.get("custom_instructions"))
             elif act == "models":
                 info = self.agent.list_models_info()
                 return {"ok": True, "models": [m["id"] for m in info], "details": info}

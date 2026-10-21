@@ -43,7 +43,8 @@ KEEP_IMAGES = 3            # older tool images are replaced by a placeholder to 
 CHARS_PER_TOKEN = 3.5      # rough, for budgeting before the provider reports real numbers
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "0.0.0.0", "[::1]")
 DEFAULT_SETTINGS = {"context_tokens": 0, "tool_detail": "auto", "compact_history": True, "nudge": True, "stream": True,
-                    "auto_recover": True, "max_reply_tokens": 16384}
+                    "auto_recover": True, "max_reply_tokens": 16384,
+                    "custom_instructions": ""}
 MAX_REPLY_CAP = 65536
 # errors servers return when the prompt doesn't fit the model's context
 CONTEXT_ERR_RE = re.compile(r"context (length|window|size|limit)|n_ctx|too many tokens|maximum context|prompt is too long|"
@@ -319,7 +320,7 @@ class DashboardAgent:
     def configure(self, preset: str | None = None, base_url: str | None = None, model: str | None = None,
                   api_key: str | None = None, vision: bool | None = None, context_tokens=None, vision_mode=None,
                   tool_detail: str | None = None, compact_history=None, nudge=None, stream=None,
-                  auto_recover=None, max_reply_tokens=None) -> dict:
+                  auto_recover=None, max_reply_tokens=None, custom_instructions: str | None = None) -> dict:
         s = self._settings()
         if preset:
             if preset not in PRESETS:
@@ -355,6 +356,8 @@ class DashboardAgent:
             s["auto_recover"] = bool(auto_recover)
         if max_reply_tokens not in (None, ""):
             s["max_reply_tokens"] = max(1024, min(int(float(max_reply_tokens)), MAX_REPLY_CAP))
+        if custom_instructions is not None:
+            s["custom_instructions"] = str(custom_instructions).strip()[:6000]
         self._budget_cache = None
         tmp = self.path + ".tmp"
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -654,7 +657,10 @@ class DashboardAgent:
         self.messages.append({"role": "user", "content": [{"type": "text", "text": f"[{stamp}] " + "\n\n".join(t for _, t in items)}]})
         budget, _src = self.budget()
         tools = await self._tool_defs()
-        system = [{"type": "text", "text": self.system_prompt + AGENT_PROMPT, "cache_control": {"type": "ephemeral"}}]
+        ci = str(self.conf().get("custom_instructions") or "").strip()
+        own = ("\n\nTHE USER'S OWN INSTRUCTIONS (their station and preferences - follow them unless they conflict "
+               "with safety or SDR Pilot's receive-only rule):\n" + ci) if ci else ""
+        system = [{"type": "text", "text": self.system_prompt + AGENT_PROMPT + own, "cache_control": {"type": "ephemeral"}}]
         fixed = (len(system[0]["text"]) + len(json.dumps(tools))) / CHARS_PER_TOKEN
         if fixed > 0.6 * budget and not self._warned_small:
             self._warned_small = True

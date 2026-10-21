@@ -1,3 +1,6 @@
+Adds an "Your instructions" box to the dashboard agent's settings: text there is added to the AI's system prompt (your station, location, preferences).
+
+Earlier in this release line:
 First release with automatic updates. Install it once by hand; after that the dashboard offers new releases itself.
 
 - Desktop app (SDR Pilot.exe): its own window, Start-menu search, pins to the taskbar as SDR Pilot
