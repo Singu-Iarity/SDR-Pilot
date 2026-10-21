@@ -1,0 +1,99 @@
+{
+ "_about": "BLE advertising decoder (channel 37, 2402 MHz): GFSK 1 Mbps demod -> clock recovery -> access-address correlator -> dewhiten / CRC-24 / parse device names and addresses. Tune the radio ~1 MHz away from 2402 MHz first.",
+ "spec": {
+  "name": "ble_adv_live",
+  "title": "BLE advertising decoder (live)",
+  "description": "GFSK 1 Mbps demod -> symbol sync -> slicer -> access-address correlator -> dewhiten/CRC/parse",
+  "variables": {
+   "ble_freq": 2402000000.0,
+   "sps": "samp_rate/1e6"
+  },
+  "imports": [
+   "import math"
+  ],
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source",
+    "params": {}
+   },
+   {
+    "name": "chan",
+    "type": "freq_xlating_fir_filter_xxx",
+    "params": {
+     "type": "ccc",
+     "decim": 1,
+     "taps": "firdes.low_pass(1, samp_rate, 650e3, 250e3)",
+     "center_freq": "ble_freq - center_freq",
+     "samp_rate": "samp_rate"
+    }
+   },
+   {
+    "name": "demod",
+    "type": "analog_quadrature_demod_cf",
+    "params": {
+     "gain": "samp_rate/(2*math.pi*250e3)"
+    }
+   },
+   {
+    "name": "sync",
+    "type": "digital_symbol_sync_xx",
+    "params": {
+     "type": "ff",
+     "ted_type": "digital.TED_MUELLER_AND_MULLER",
+     "sps": "sps",
+     "loop_bw": 0.1,
+     "damping": 1.0,
+     "ted_gain": 1.0,
+     "max_dev": 0.02,
+     "osps": 1,
+     "resamp_type": "digital.IR_MMSE_8TAP"
+    }
+   },
+   {
+    "name": "slicer",
+    "type": "digital_binary_slicer_fb",
+    "params": {}
+   },
+   {
+    "name": "corr",
+    "type": "digital_correlate_access_code_tag_xx",
+    "params": {
+     "type": "byte",
+     "access_code": "'01101011011111011001000101110001'",
+     "threshold": 1,
+     "tagname": "'aa'"
+    }
+   },
+   {
+    "name": "parser",
+    "type": "epy_block",
+    "params": {
+     "channel": 37,
+     "tagname": "'aa'",
+     "out_file": "'packets.jsonl'",
+     "_source_file": "ble_adv_parser_block.py"
+    }
+   }
+  ],
+  "connections": [
+   "src -> chan",
+   "chan -> demod",
+   "demod -> sync",
+   "sync -> slicer",
+   "slicer -> corr",
+   "corr -> parser"
+  ]
+ },
+ "use_when": "Bluetooth Low Energy advertising packets",
+ "keywords": [
+  "ble",
+  "bluetooth",
+  "2402",
+  "advertising",
+  "beacon"
+ ],
+ "variables_help": {
+  "ble_freq": "advertising channel frequency (2402 / 2426 / 2480 MHz = channels 37 / 38 / 39; also set the parser's channel)"
+ }
+}

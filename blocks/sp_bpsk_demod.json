@@ -1,0 +1,120 @@
+{
+ "description": "BPSK demodulator to bits: channel at `offset` -> AGC -> FLL (band-edge) frequency lock -> Gardner clock recovery -> Costas phase lock -> slicer. Out 0: bits (one per byte; differential-decode if the protocol uses it), out 1: symbols (complex). For satellites, telemetry, PSK links.",
+ "keywords": [
+  "bpsk",
+  "psk",
+  "satellite",
+  "telemetry",
+  "costas"
+ ],
+ "parameters": {
+  "samp_rate": 2000000.0,
+  "offset": 0,
+  "baud": 9600,
+  "excess_bw": 0.35
+ },
+ "variables": {
+  "d1": "max(1, int(samp_rate // (4*baud)))",
+  "qrate": "samp_rate/d1",
+  "sps": "qrate/baud"
+ },
+ "imports": [
+  "import math"
+ ],
+ "blocks": [
+  {
+   "name": "chan",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, samp_rate, (baud*(1+excess_bw)*1.3)/2, (baud*(1+excess_bw)*1.3)/4)",
+    "center_freq": "offset",
+    "samp_rate": "samp_rate"
+   }
+  },
+  {
+   "name": "agc",
+   "type": "analog_agc_xx",
+   "params": {
+    "type": "complex",
+    "rate": "1e-3",
+    "reference": "1.0",
+    "gain": "1.0",
+    "max_gain": "65536"
+   }
+  },
+  {
+   "name": "fll",
+   "type": "digital_fll_band_edge_cc",
+   "params": {
+    "type": "cc",
+    "samps_per_sym": "sps",
+    "rolloff": "excess_bw",
+    "filter_size": "44",
+    "w": "2*math.pi/200"
+   }
+  },
+  {
+   "name": "sync",
+   "type": "digital_symbol_sync_xx",
+   "params": {
+    "type": "cc",
+    "ted_type": "digital.TED_GARDNER",
+    "sps": "sps",
+    "loop_bw": 0.045,
+    "damping": 1.0,
+    "ted_gain": 1.0,
+    "max_dev": 0.02,
+    "osps": 1,
+    "resamp_type": "digital.IR_MMSE_8TAP"
+   }
+  },
+  {
+   "name": "costas",
+   "type": "digital_costas_loop_cc",
+   "params": {
+    "w": "2*math.pi/100",
+    "order": "2",
+    "use_snr": "False"
+   }
+  },
+  {
+   "name": "re",
+   "type": "blocks_complex_to_real"
+  },
+  {
+   "name": "slicer",
+   "type": "digital_binary_slicer_fb"
+  }
+ ],
+ "connections": [
+  "chan -> agc",
+  "agc -> fll",
+  "fll -> sync",
+  "sync -> costas",
+  "costas -> re",
+  "re -> slicer"
+ ],
+ "inputs": [
+  {
+   "to": "chan:0",
+   "type": "complex",
+   "label": "iq"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "slicer:0",
+   "type": "byte",
+   "label": "bits"
+  },
+  {
+   "from": "costas:0",
+   "type": "complex",
+   "label": "symbols",
+   "optional": true
+  }
+ ],
+ "name": "sp_bpsk_demod"
+}

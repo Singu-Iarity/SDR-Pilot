@@ -1,0 +1,48 @@
+{
+ "description": "Channel selector: shifts the signal at `offset` (Hz from the capture/tuning centre) to 0 Hz, low-pass filters to `bandwidth` and decimates by `decim`. Output rate = samp_rate/decim.",
+ "keywords": [
+  "channel",
+  "filter",
+  "shift",
+  "select"
+ ],
+ "parameters": {
+  "samp_rate": 2000000.0,
+  "offset": 0,
+  "bandwidth": 200000.0,
+  "decim": 1
+ },
+ "variables": {
+  "d1": "max(1, int(decim))"
+ },
+ "imports": [],
+ "blocks": [
+  {
+   "name": "chan",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, samp_rate, (bandwidth)/2, (bandwidth)/4)",
+    "center_freq": "offset",
+    "samp_rate": "samp_rate"
+   }
+  }
+ ],
+ "connections": [],
+ "inputs": [
+  {
+   "to": "chan:0",
+   "type": "complex",
+   "label": "iq"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "chan:0",
+   "type": "complex",
+   "label": "chan"
+  }
+ ],
+ "name": "sp_channel"
+}

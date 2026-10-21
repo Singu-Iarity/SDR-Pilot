@@ -1,0 +1,116 @@
+{
+ "_about": "Generic FSK/GFSK burst decoder: channel filter -> FM discriminator -> clock recovery -> slicer -> sync-word correlator -> bit dumper (hex per burst). Works for most FSK packet radios: sensors, meters, pagers, 433/868/915 MHz ISM devices, BLE-like links.",
+ "use_when": "a 2-FSK / GFSK burst signal (analyze_signal says FSK); set chan_freq, deviation, baud and the sync word / preamble",
+ "keywords": [
+  "fsk",
+  "gfsk",
+  "2-fsk",
+  "meter",
+  "ert",
+  "ami",
+  "915",
+  "868",
+  "ism",
+  "sensor",
+  "pager",
+  "packet"
+ ],
+ "variables_help": {
+  "chan_freq": "absolute centre frequency of the signal in Hz",
+  "chan_bw": "channel filter width in Hz (~2 x deviation + baud)",
+  "deviation": "FSK deviation in Hz (analyze_signal: deviation_hz)",
+  "baud": "symbol rate (analyze_signal: symbol_rate_est)",
+  "decim": "decimation before demod (default keeps ~4 samples per symbol)",
+  "access_code": "sync word / preamble bits as a quoted string, e.g. '10101010101010101010' (alternating preamble) or the protocol's sync word",
+  "nbits": "bits to dump after each sync match"
+ },
+ "spec": {
+  "name": "fsk_burst_decoder",
+  "title": "FSK burst decoder",
+  "description": "xlating filter -> quadrature demod -> symbol sync -> slicer -> correlate access code -> burst bits",
+  "variables": {
+   "chan_freq": 915000000.0,
+   "chan_bw": 300000.0,
+   "deviation": 50000.0,
+   "baud": 100000.0,
+   "decim": "max(1, int(samp_rate // (4*baud)))",
+   "access_code": "'10101010101010101010'",
+   "nbits": 256
+  },
+  "imports": [
+   "import math"
+  ],
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source"
+   },
+   {
+    "name": "chan",
+    "type": "freq_xlating_fir_filter_xxx",
+    "params": {
+     "type": "ccc",
+     "decim": "decim",
+     "taps": "firdes.low_pass(1, samp_rate, chan_bw/2, chan_bw/4)",
+     "center_freq": "chan_freq - center_freq",
+     "samp_rate": "samp_rate"
+    }
+   },
+   {
+    "name": "demod",
+    "type": "analog_quadrature_demod_cf",
+    "params": {
+     "gain": "(samp_rate/decim)/(2*math.pi*deviation)"
+    }
+   },
+   {
+    "name": "sync",
+    "type": "digital_symbol_sync_xx",
+    "params": {
+     "type": "ff",
+     "ted_type": "digital.TED_MUELLER_AND_MULLER",
+     "sps": "(samp_rate/decim)/baud",
+     "loop_bw": 0.05,
+     "damping": 1.0,
+     "ted_gain": 1.0,
+     "max_dev": 0.02,
+     "osps": 1,
+     "resamp_type": "digital.IR_MMSE_8TAP"
+    }
+   },
+   {
+    "name": "slicer",
+    "type": "digital_binary_slicer_fb"
+   },
+   {
+    "name": "corr",
+    "type": "digital_correlate_access_code_tag_xx",
+    "params": {
+     "type": "byte",
+     "access_code": "access_code",
+     "threshold": 1,
+     "tagname": "'sync'"
+    }
+   },
+   {
+    "name": "bits",
+    "type": "epy_block",
+    "params": {
+     "_source_file": "burst_bits_block.py",
+     "tagname": "'sync'",
+     "nbits": "nbits",
+     "manchester": "False",
+     "out_file": "'bursts.jsonl'"
+    }
+   }
+  ],
+  "connections": [
+   "src -> chan",
+   "chan -> demod",
+   "demod -> sync",
+   "sync -> slicer",
+   "slicer -> corr",
+   "corr -> bits"
+  ]
+ }
+}

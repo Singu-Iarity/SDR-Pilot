@@ -1,0 +1,222 @@
+{
+ "_about": "WiFi 802.11a/g (and 802.11p) receiver using the installed gr-ieee802-11 blocks, laid out like its wifi_rx example: preamble detection, OFDM demodulation, equalizer, MAC decoding. Each frame becomes a decoded record (beacon SSIDs and channels, devices by address, frame types) in the job summary and the dashboard's Decoded view. Needs the radio tuned EXACTLY to the channel centre (2.4 GHz channel n: 2407 + 5n MHz; 5 GHz channel n: 5000 + 5n MHz) at 20 MS/s for 20 MHz channels - the DC spike doesn't matter (802.11 leaves the centre subcarrier empty). Only legacy-rate frames (beacons, management, many control/data frames at 6-54 Mb/s) decode; HT/VHT (802.11n/ac/ax) data frames don't.",
+ "use_when": "decoding WiFi / 802.11 frames: beacons (network names), devices, management frames",
+ "keywords": [
+  "wifi",
+  "wi-fi",
+  "802.11",
+  "wlan",
+  "ssid",
+  "beacon frames",
+  "access point",
+  "router"
+ ],
+ "requires": [
+  "ieee802_11_sync_short",
+  "ieee802_11_sync_long",
+  "ieee802_11_frame_equalizer",
+  "ieee802_11_decode_mac"
+ ],
+ "variables_help": {
+  "wifi_freq": "channel centre frequency in Hz (default: where the radio is tuned - tune exactly there)",
+  "threshold": "preamble detection threshold 0..1 (0.56; lower finds weaker frames but more false starts)",
+  "window_size": "autocorrelation window (48)",
+  "sync_length": "long-sync search length (320)"
+ },
+ "spec": {
+  "name": "wifi_rx",
+  "title": "WiFi 802.11a/g/p receiver (gr-ieee802-11)",
+  "description": "short-preamble autocorrelation -> sync short/long -> 64-pt FFT -> frame equalizer -> decode MAC -> parser",
+  "variables": {
+   "wifi_freq": "center_freq",
+   "window_size": 48,
+   "sync_length": 320,
+   "threshold": 0.56
+  },
+  "imports": [],
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source",
+    "note": "live IQ - tune EXACTLY to the WiFi channel centre at 20 MS/s (10 MS/s for 802.11p)"
+   },
+   {
+    "name": "pwr",
+    "type": "blocks_complex_to_mag_squared",
+    "params": {
+     "vlen": "1"
+    },
+    "note": "signal power"
+   },
+   {
+    "name": "pwr_avg",
+    "type": "blocks_moving_average_xx",
+    "params": {
+     "type": "float",
+     "length": "window_size + 16",
+     "scale": "1",
+     "max_iter": "4000",
+     "vlen": "1"
+    }
+   },
+   {
+    "name": "d16",
+    "type": "blocks_delay",
+    "params": {
+     "type": "complex",
+     "delay": "16",
+     "num_ports": "1",
+     "vlen": "1"
+    },
+    "note": "the short training symbol repeats every 16 samples"
+   },
+   {
+    "name": "conj",
+    "type": "blocks_conjugate_cc"
+   },
+   {
+    "name": "mul",
+    "type": "blocks_multiply_xx",
+    "params": {
+     "type": "complex",
+     "num_inputs": "2",
+     "vlen": "1"
+    }
+   },
+   {
+    "name": "ac_avg",
+    "type": "blocks_moving_average_xx",
+    "params": {
+     "type": "complex",
+     "length": "window_size",
+     "scale": "1",
+     "max_iter": "4000",
+     "vlen": "1"
+    },
+    "note": "autocorrelation at lag 16"
+   },
+   {
+    "name": "ac_mag",
+    "type": "blocks_complex_to_mag",
+    "params": {
+     "vlen": "1"
+    }
+   },
+   {
+    "name": "ratio",
+    "type": "blocks_divide_xx",
+    "params": {
+     "type": "float",
+     "num_inputs": "2",
+     "vlen": "1"
+    },
+    "note": "normalised autocorrelation: ~1 during a preamble"
+   },
+   {
+    "name": "sync_short",
+    "type": "ieee802_11_sync_short",
+    "params": {
+     "threshold": "threshold",
+     "min_plateau": "2",
+     "log": "False",
+     "debug": "False"
+    },
+    "note": "finds frame starts"
+   },
+   {
+    "name": "d_long",
+    "type": "blocks_delay",
+    "params": {
+     "type": "complex",
+     "delay": "sync_length",
+     "num_ports": "1",
+     "vlen": "1"
+    }
+   },
+   {
+    "name": "sync_long",
+    "type": "ieee802_11_sync_long",
+    "params": {
+     "sync_length": "sync_length",
+     "log": "False",
+     "debug": "False"
+    },
+    "note": "fine timing + frequency offset from the long training symbols"
+   },
+   {
+    "name": "s2v",
+    "type": "blocks_stream_to_vector",
+    "params": {
+     "type": "complex",
+     "num_items": "64",
+     "vlen": "1"
+    }
+   },
+   {
+    "name": "ofdm_fft",
+    "type": "fft_vxx",
+    "params": {
+     "type": "complex",
+     "fft_size": "64",
+     "forward": "True",
+     "window": "window.rectangular(64)",
+     "shift": "True",
+     "nthreads": "1"
+    },
+    "note": "OFDM demodulation (64 subcarriers)"
+   },
+   {
+    "name": "eq",
+    "type": "ieee802_11_frame_equalizer",
+    "params": {
+     "algo": "ieee802_11.LS",
+     "freq": "wifi_freq",
+     "bw": "samp_rate",
+     "log": "False",
+     "debug": "False"
+    }
+   },
+   {
+    "name": "mac",
+    "type": "ieee802_11_decode_mac",
+    "params": {
+     "log": "False",
+     "debug": "False"
+    },
+    "note": "deinterleave, Viterbi, descramble, FCS check"
+   },
+   {
+    "name": "parser",
+    "type": "epy_block",
+    "params": {
+     "log_control": "False",
+     "_source_file": "wifi_mac_parser_block.py"
+    },
+    "note": "frame type, addresses, SSID -> decoded records"
+   }
+  ],
+  "connections": [
+   "src:0 -> pwr:0",
+   "src:0 -> d16:0",
+   "src:0 -> mul:0",
+   "d16:0 -> conj:0",
+   "conj:0 -> mul:1",
+   "mul:0 -> ac_avg:0",
+   "ac_avg:0 -> ac_mag:0",
+   "ac_mag:0 -> ratio:0",
+   "pwr:0 -> pwr_avg:0",
+   "pwr_avg:0 -> ratio:1",
+   "d16:0 -> sync_short:0",
+   "ac_avg:0 -> sync_short:1",
+   "ratio:0 -> sync_short:2",
+   "sync_short:0 -> d_long:0",
+   "sync_short:0 -> sync_long:0",
+   "d_long:0 -> sync_long:1",
+   "sync_long:0 -> s2v:0",
+   "s2v:0 -> ofdm_fft:0",
+   "ofdm_fft:0 -> eq:0",
+   "eq:0 -> mac:0",
+   "mac:out -> parser:in"
+  ]
+ }
+}

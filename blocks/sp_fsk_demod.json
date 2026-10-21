@@ -1,0 +1,95 @@
+{
+ "description": "2-FSK / GFSK demodulator to bits: channel at `offset` -> FM discriminator -> clock recovery -> slicer. Out 0: one bit per byte (feed a correlate_access_code / packet parser). Out 1: soft symbols. bandwidth 0 = 2*deviation + baud.",
+ "keywords": [
+  "fsk",
+  "gfsk",
+  "2-fsk",
+  "bits",
+  "packet",
+  "sensor",
+  "meter",
+  "pager",
+  "ble",
+  "ism"
+ ],
+ "parameters": {
+  "samp_rate": 2000000.0,
+  "offset": 0,
+  "deviation": 50000.0,
+  "baud": 100000.0,
+  "bandwidth": 0
+ },
+ "variables": {
+  "d1": "max(1, int(samp_rate // (4*baud)))",
+  "qrate": "samp_rate/d1",
+  "bw": "bandwidth if bandwidth > 0 else 2*deviation + baud"
+ },
+ "imports": [
+  "import math"
+ ],
+ "blocks": [
+  {
+   "name": "chan",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, samp_rate, (bw)/2, (bw)/4)",
+    "center_freq": "offset",
+    "samp_rate": "samp_rate"
+   }
+  },
+  {
+   "name": "fm",
+   "type": "analog_quadrature_demod_cf",
+   "params": {
+    "gain": "qrate/(2*math.pi*deviation)"
+   }
+  },
+  {
+   "name": "sync",
+   "type": "digital_symbol_sync_xx",
+   "params": {
+    "type": "ff",
+    "ted_type": "digital.TED_MUELLER_AND_MULLER",
+    "loop_bw": 0.05,
+    "damping": 1.0,
+    "ted_gain": 1.0,
+    "max_dev": 0.02,
+    "osps": 1,
+    "resamp_type": "digital.IR_MMSE_8TAP",
+    "sps": "qrate/baud"
+   }
+  },
+  {
+   "name": "slicer",
+   "type": "digital_binary_slicer_fb"
+  }
+ ],
+ "connections": [
+  "chan -> fm",
+  "fm -> sync",
+  "sync -> slicer"
+ ],
+ "inputs": [
+  {
+   "to": "chan:0",
+   "type": "complex",
+   "label": "iq"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "slicer:0",
+   "type": "byte",
+   "label": "bits"
+  },
+  {
+   "from": "sync:0",
+   "type": "float",
+   "label": "soft",
+   "optional": true
+  }
+ ],
+ "name": "sp_fsk_demod"
+}

@@ -1,0 +1,50 @@
+id: sp_radio_control
+label: SDR Pilot radio control
+category: '[SDR Pilot]/Radio control'
+flags: [python]
+
+parameters:
+-   id: param
+    label: Parameter
+    dtype: string
+    default: center_freq
+-   id: value
+    label: Value (expression of x)
+    dtype: string
+    default: x
+-   id: min_interval
+    label: Min interval (s)
+    dtype: real
+    default: '0.25'
+-   id: minimum
+    label: Minimum
+    dtype: string
+    default: ''
+-   id: maximum
+    label: Maximum
+    dtype: string
+    default: ''
+-   id: update_var
+    label: Update flowgraph variable
+    dtype: string
+    default: ''
+
+inputs:
+-   domain: message
+    id: cmd
+
+templates:
+    imports: |-
+        import os, sys; sys.path[:0] = [p for p in (os.environ.get('GRC_HIER_PATH', ''), os.path.join(os.environ.get('XDG_STATE_HOME') or (os.path.join(os.environ.get('APPDATA', ''), '.local', 'state') if os.name == 'nt' else os.path.expanduser('~/.local/state')), 'gnuradio'), os.path.expanduser('~/.grc_gnuradio')) if p and os.path.isdir(p) and p not in sys.path]
+        import sp_radio_impl
+    make: sp_radio_impl.radio_control(param=${param}, value=${value}, min_interval=${min_interval}, minimum=${minimum}, maximum=${maximum}, update_var=${update_var})
+
+documentation: |-
+    Lets the flowgraph change the radio. Messages on 'cmd': a number sets Parameter to Value (an expression of x, e.g.
+    'x', 'x*1e6', 'center_freq + x', '2402e6 + 2e6*x'); a dict {"center_freq": 2.426e9, "gain": 30}, a pair
+    (gain . 30) or a string "gain=30" sets those directly. Parameters: center_freq, sample_rate, gain, agc, or any
+    SDRangel device setting by name (lnaGain, vgaGain, biasT, bandwidth...). Minimum/Maximum clamp the value;
+    Update flowgraph variable sets that variable to the applied value (e.g. center_freq, so the flowgraph's own
+    tuning maths follows). SDR Pilot applies it like its radio tools (refused while another chat holds the radio).
+
+file_format: 1

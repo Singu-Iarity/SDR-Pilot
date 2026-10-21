@@ -1,0 +1,19 @@
+{
+  "_help": "SDR Pilot settings. Every key is optional; delete a line to use the default. Env vars SDRPILOT_<KEY> override these.",
+  "source": "sdrangel",
+  "_source": "'sdrangel' = your running SDRangel; 'sim' = built-in simulator with test signals",
+  "sdrangel_host": "127.0.0.1",
+  "sdrangel_api_port": 8091,
+  "sdrangel_device_set": 0,
+  "sdrangel_iq_port": 1234,
+  "sdrangel_protocol": "rtl0",
+  "_sdrangel_protocol": "'rtl0' = 8-bit raw IQ, works with no clicks. 'sdra' = 16-bit; then tick 'IQ only' (or choose zlib) in the Remote TCP Sink settings dialog",
+  "auto_configure_channel": true,
+  "dashboard_port": 8765,
+  "open_dashboard_on_first_use": true,
+  "zmq_port": 5600,
+  "workspace": "workspace",
+  "dashboard_bind": "local",
+  "_dashboard_bind": "'local' = this PC only (reach it from other devices with remote_access.bat / tailscale serve), 'tailscale' = also listen on the Tailscale IP, 'all' = also the home LAN",
+  "mcp_http_port": 8770
+}

@@ -1,0 +1,122 @@
+{
+ "description": "OOK/ASK demodulator for fixed-rate (NRZ or Manchester) signals: channel at `offset` -> envelope -> adaptive threshold -> clock recovery -> slicer. Out 0: bits (one per byte), out 1: envelope. For pulse-width coded remotes/sensors use the ook_burst_decoder recipe instead.",
+ "keywords": [
+  "ook",
+  "ask",
+  "envelope",
+  "on-off",
+  "433",
+  "315",
+  "manchester"
+ ],
+ "parameters": {
+  "samp_rate": 2000000.0,
+  "offset": 0,
+  "bandwidth": 200000.0,
+  "baud": 2000
+ },
+ "variables": {
+  "d1": "max(1, int(samp_rate // max(8*baud, bandwidth)))",
+  "qrate": "samp_rate/d1",
+  "nshort": "max(1, int(qrate/baud/2))",
+  "nlong": "max(2, int(qrate/baud*16))"
+ },
+ "imports": [],
+ "blocks": [
+  {
+   "name": "chan",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, samp_rate, (bandwidth)/2, (bandwidth)/4)",
+    "center_freq": "offset",
+    "samp_rate": "samp_rate"
+   }
+  },
+  {
+   "name": "mag",
+   "type": "blocks_complex_to_mag"
+  },
+  {
+   "name": "env",
+   "type": "blocks_moving_average_xx",
+   "params": {
+    "type": "float",
+    "length": "nshort",
+    "scale": "1.0/nshort",
+    "max_iter": "4000",
+    "vlen": "1"
+   }
+  },
+  {
+   "name": "mean",
+   "type": "blocks_moving_average_xx",
+   "params": {
+    "type": "float",
+    "length": "nlong",
+    "scale": "1.0/nlong",
+    "max_iter": "4000",
+    "vlen": "1"
+   }
+  },
+  {
+   "name": "sub",
+   "type": "blocks_sub_xx",
+   "params": {
+    "type": "float",
+    "num_inputs": "2",
+    "vlen": "1"
+   }
+  },
+  {
+   "name": "sync",
+   "type": "digital_symbol_sync_xx",
+   "params": {
+    "type": "ff",
+    "ted_type": "digital.TED_MUELLER_AND_MULLER",
+    "loop_bw": 0.05,
+    "damping": 1.0,
+    "ted_gain": 1.0,
+    "max_dev": 0.02,
+    "osps": 1,
+    "resamp_type": "digital.IR_MMSE_8TAP",
+    "sps": "qrate/baud"
+   }
+  },
+  {
+   "name": "slicer",
+   "type": "digital_binary_slicer_fb"
+  }
+ ],
+ "connections": [
+  "chan -> mag",
+  "mag -> env",
+  "env -> mean",
+  "env -> sub:0",
+  "mean -> sub:1",
+  "sub -> sync",
+  "sync -> slicer"
+ ],
+ "inputs": [
+  {
+   "to": "chan:0",
+   "type": "complex",
+   "label": "iq"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "slicer:0",
+   "type": "byte",
+   "label": "bits"
+  },
+  {
+   "from": "env:0",
+   "type": "float",
+   "label": "envelope",
+   "optional": true
+  }
+ ],
+ "name": "sp_ook_demod"
+}

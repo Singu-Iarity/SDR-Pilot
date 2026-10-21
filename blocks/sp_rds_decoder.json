@@ -1,0 +1,138 @@
+{
+ "description": "RDS decoder (station name, RadioText, PI/PTY, clock): takes the FM multiplex (sp_wbfm_receiver out 1) at mpx_rate -> 57 kHz subcarrier -> resample to 19 kS/s -> Costas -> biphase matched filter -> clock recovery -> differential decoding -> gr-rds decoder + parser. Out: parsed RDS messages; the parser also prints readable lines. pty_locale 1 = North America, 0 = Europe.",
+ "keywords": [
+  "rds",
+  "radiotext",
+  "station name",
+  "fm broadcast",
+  "rbds"
+ ],
+ "requires": [
+  "rds_decoder",
+  "rds_parser"
+ ],
+ "parameters": {
+  "mpx_rate": 240000.0,
+  "pty_locale": 1
+ },
+ "variables": {
+  "d2": "max(1, int(mpx_rate // 48e3))"
+ },
+ "imports": [],
+ "blocks": [
+  {
+   "name": "r57",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "fcc",
+    "decim": "d2",
+    "taps": "firdes.low_pass(1, mpx_rate, 2.5e3, 1e3)",
+    "center_freq": "57e3",
+    "samp_rate": "mpx_rate"
+   }
+  },
+  {
+   "name": "rs",
+   "type": "mmse_resampler_xx",
+   "params": {
+    "type": "complex",
+    "phase_shift": "0",
+    "resamp_ratio": "(mpx_rate/d2)/19000"
+   }
+  },
+  {
+   "name": "costas",
+   "type": "digital_costas_loop_cc",
+   "params": {
+    "w": "0.02",
+    "order": "2",
+    "use_snr": "False"
+   }
+  },
+  {
+   "name": "re",
+   "type": "blocks_complex_to_real"
+  },
+  {
+   "name": "mf",
+   "type": "fir_filter_xxx",
+   "params": {
+    "type": "fff",
+    "decim": "1",
+    "taps": "[1.0]*8 + [-1.0]*8",
+    "samp_delay": "0"
+   }
+  },
+  {
+   "name": "sync",
+   "type": "digital_symbol_sync_xx",
+   "params": {
+    "type": "ff",
+    "ted_type": "digital.TED_ZERO_CROSSING",
+    "loop_bw": 0.01,
+    "damping": 1.0,
+    "ted_gain": 1.0,
+    "max_dev": 0.005,
+    "osps": 1,
+    "resamp_type": "digital.IR_MMSE_8TAP",
+    "sps": "16"
+   }
+  },
+  {
+   "name": "slicer",
+   "type": "digital_binary_slicer_fb"
+  },
+  {
+   "name": "diff",
+   "type": "digital_diff_decoder_bb",
+   "params": {
+    "coding": "digital.DIFF_DIFFERENTIAL",
+    "modulus": "2"
+   }
+  },
+  {
+   "name": "dec",
+   "type": "rds_decoder",
+   "params": {
+    "log": "False",
+    "debug": "False"
+   }
+  },
+  {
+   "name": "parser",
+   "type": "rds_parser",
+   "params": {
+    "log": "True",
+    "debug": "False",
+    "pty_locale": "pty_locale"
+   }
+  }
+ ],
+ "connections": [
+  "r57 -> rs",
+  "rs -> costas",
+  "costas -> re",
+  "re -> mf",
+  "mf -> sync",
+  "sync -> slicer",
+  "slicer -> diff",
+  "diff -> dec",
+  "dec:out -> parser:in"
+ ],
+ "inputs": [
+  {
+   "to": "r57:0",
+   "type": "float",
+   "label": "mpx"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "parser:out",
+   "type": "message",
+   "label": "rds",
+   "optional": true
+  }
+ ],
+ "name": "sp_rds_decoder"
+}

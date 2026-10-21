@@ -1,0 +1,129 @@
+{
+ "description": "Broadcast FM receiver: two-stage channel filter at `offset` -> FM demod -> de-emphasis -> 15 kHz low-pass -> audio at audio_rate (out 0). Out 1 is the FM multiplex (MPX: mono + 19 kHz pilot + stereo + 57 kHz RDS) resampled to a fixed 240 kS/s - connect it to sp_rds_decoder (mpx_rate 240e3).",
+ "keywords": [
+  "fm",
+  "wbfm",
+  "broadcast",
+  "radio station",
+  "music",
+  "88",
+  "108",
+  "rds",
+  "mpx"
+ ],
+ "parameters": {
+  "samp_rate": 2400000.0,
+  "offset": 0,
+  "audio_rate": 48000,
+  "tau": 7.5e-05
+ },
+ "variables": {
+  "d0": "max(1, int(samp_rate // 960e3))",
+  "r0": "samp_rate/d0",
+  "d1": "max(1, int(r0 // 240e3))",
+  "qrate": "r0/d1"
+ },
+ "imports": [
+  "import math"
+ ],
+ "blocks": [
+  {
+   "name": "chan",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d0",
+    "taps": "firdes.low_pass(1, samp_rate, 300e3, 200e3)",
+    "center_freq": "offset",
+    "samp_rate": "samp_rate"
+   }
+  },
+  {
+   "name": "chan2",
+   "type": "fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, r0, 110e3, 20e3)",
+    "samp_delay": "0"
+   }
+  },
+  {
+   "name": "fm",
+   "type": "analog_quadrature_demod_cf",
+   "params": {
+    "gain": "qrate/(2*math.pi*75e3)"
+   }
+  },
+  {
+   "name": "mpx",
+   "type": "mmse_resampler_xx",
+   "params": {
+    "type": "float",
+    "phase_shift": "0",
+    "resamp_ratio": "qrate/240e3"
+   }
+  },
+  {
+   "name": "deemph",
+   "type": "analog_fm_deemph",
+   "params": {
+    "samp_rate": "qrate",
+    "tau": "tau"
+   }
+  },
+  {
+   "name": "lpf",
+   "type": "low_pass_filter",
+   "params": {
+    "type": "fir_filter_fff",
+    "decim": "1",
+    "interp": "1",
+    "gain": "1",
+    "samp_rate": "qrate",
+    "cutoff_freq": "15e3",
+    "width": "3e3",
+    "win": "window.WIN_HAMMING",
+    "beta": "6.76"
+   }
+  },
+  {
+   "name": "rs",
+   "type": "mmse_resampler_xx",
+   "params": {
+    "type": "float",
+    "phase_shift": "0",
+    "resamp_ratio": "qrate/audio_rate"
+   }
+  }
+ ],
+ "connections": [
+  "chan -> chan2",
+  "chan2 -> fm",
+  "fm -> mpx",
+  "fm -> deemph",
+  "deemph -> lpf",
+  "lpf -> rs"
+ ],
+ "inputs": [
+  {
+   "to": "chan:0",
+   "type": "complex",
+   "label": "iq"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "rs:0",
+   "type": "float",
+   "label": "audio"
+  },
+  {
+   "from": "mpx:0",
+   "type": "float",
+   "label": "mpx",
+   "optional": true
+  }
+ ],
+ "name": "sp_wbfm_receiver"
+}

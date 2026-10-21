@@ -1,0 +1,2192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="sdrpilot-key" content="__SDRPILOT_KEY__">
+<meta name="sdrpilot-version" content="__SDRPILOT_VERSION__">
+<meta name="theme-color" content="#0b0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SDR Pilot">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-64.png">
+<title>SDR Pilot</title>
+<style>
+:root{
+  --bg:#0b0d12; --panel:#12151d; --panel2:#171b25; --line:#242a37; --text:#e6e8ee; --dim:#8a91a3; --faint:#5b6273;
+  --accent:#4fe0a8; --accent2:#7aa8ff; --warn:#ffb347; --bad:#ff6b81; --ai:#c9a7ff;
+  --mono:"Cascadia Mono","JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --ui:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  --navh:0px; --toph:0px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--ui)}
+body{-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit}
+a{color:var(--accent2)}
+#top{position:sticky;top:0;z-index:10;background:var(--bg)}
+header{display:flex;align-items:center;gap:14px;padding:10px 20px;padding-top:calc(10px + var(--sat));padding-left:calc(20px + var(--sal));padding-right:calc(20px + var(--sar));border-bottom:1px solid var(--line);background:linear-gradient(180deg,#10131a,#0b0d12)}
+.brand{display:flex;align-items:baseline;gap:10px;flex:none}
+.brand b{font:700 17px var(--mono);letter-spacing:.18em;color:var(--accent)}
+.brand span{color:var(--faint);font-size:12px}
+#pills{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+#pills::-webkit-scrollbar{display:none}
+.pill{display:flex;flex-direction:column;padding:2px 12px;border-left:1px solid var(--line);min-width:84px;flex:none}
+.pill small{color:var(--faint);font:600 10px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.pill div{font:500 14px var(--mono);white-space:nowrap}
+.pill .big{font-size:19px;color:var(--accent)}
+.iconbtn{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--dim);cursor:pointer}
+.iconbtn:hover{color:var(--text);border-color:#3a4152}
+.iconbtn svg{width:19px;height:19px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--faint);vertical-align:1px;flex:none}
+.dot.ok{background:var(--accent);box-shadow:0 0 8px var(--accent)} .dot.bad{background:var(--bad)} .dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+#sessbar{display:flex;gap:8px;align-items:center;padding:7px 20px;padding-left:calc(20px + var(--sal));padding-right:calc(20px + var(--sar));border-bottom:1px solid var(--line);background:#0e1118}
+#sesslist{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;padding:1px}
+#sesslist::-webkit-scrollbar{display:none}
+#sessbar .lbl{font:600 10px var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase;flex:none}
+.sess{display:flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid var(--line);border-radius:16px;background:var(--panel);cursor:pointer;font-size:12.5px;color:var(--dim);max-width:300px;flex:none}
+.sess b{color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sess.on{border-color:var(--accent);background:#11261f}
+.sess.host b{color:var(--ai)} .sess.host.on{border-color:var(--ai);background:#1d1830}
+.sess small{font:10px var(--mono);color:var(--faint);white-space:nowrap}
+.sess .x{margin-left:2px;width:18px;height:18px;display:grid;place-items:center;border-radius:50%;color:var(--faint);font-size:13px;line-height:1}
+.sess .x:hover{background:#2a1418;color:var(--bad)}
+.chipbtn{flex:none;padding:5px 11px;border-radius:16px;border:1px dashed #3a4152;background:transparent;color:var(--dim);font-size:12.5px;cursor:pointer;white-space:nowrap}
+.chipbtn:hover{color:var(--text);border-color:var(--dim)}
+#follow{font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:center;flex:none;white-space:nowrap}
+main{padding:16px 20px;padding-left:calc(20px + var(--sal));padding-right:calc(20px + var(--sar));--gap:16px}
+#cols{display:flex;align-items:flex-start}
+.zone{display:flex;flex-direction:column;gap:var(--gap);min-width:0;min-height:40px}
+.zcol{flex:1 1 0;min-width:220px}
+#bottom{margin-top:var(--gap)}
+#bottom:empty{min-height:0;margin-top:0}
+body.dragging #bottom:empty{min-height:60px;margin-top:var(--gap);border:1px dashed #2c3446;border-radius:12px}
+.vsplit{flex:none;width:var(--gap);align-self:stretch;cursor:col-resize;position:relative;touch-action:none}
+.vsplit::after{content:"";position:absolute;left:calc(50% - 1px);top:8px;bottom:8px;width:2px;border-radius:1px}
+.vsplit:hover::after,.vsplit.on::after{background:#3a4a6a}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0;position:relative;display:flex;flex-direction:column}
+.card > h2{flex:none;justify-content:flex-start}
+.card > h2 > em,.card > h2 > .fgbar{margin-left:auto}
+.card > h2 > .hidebtn{margin-left:2px}
+.card .grip{cursor:grab;color:var(--faint);font-size:14px;letter-spacing:0;margin-right:-4px;opacity:.45;touch-action:none;user-select:none;padding:2px 0}
+.card h2:hover .grip{opacity:1;color:var(--dim)}
+.card .hidebtn{border:0;background:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:0}
+.card h2:hover .hidebtn{opacity:1} .card .hidebtn:hover{color:var(--bad)}
+.card .rsz{position:absolute;left:0;right:0;bottom:0;height:9px;cursor:row-resize;touch-action:none;z-index:2}
+.card .rsz:hover,.card .rsz.on{background:linear-gradient(transparent,rgba(122,168,255,.35))}
+.card.lay-hidden{display:none !important}
+.card.drag{position:fixed !important;z-index:60;opacity:.85;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.dropph{border:2px dashed var(--accent2);border-radius:12px;background:rgba(122,168,255,.06);flex:none}
+@media (min-width:900px){
+  .card.sized{height:var(--h)}
+  .card.sized > .grow{flex:1 1 auto;min-height:0;overflow:auto;height:auto !important;max-height:none !important}
+  .card.sized #specwrap{display:flex;flex-direction:column;overflow:hidden}
+  .card.sized #spec{flex:none} .card.sized #wf{flex:1 1 auto;min-height:40px;height:auto}
+}
+body.compact main{--gap:10px;padding:10px 14px}
+body.compact .card h2{min-height:calc(var(--title-fs) * 2.8);padding:6px 12px}
+body.compact #spec{height:110px} body.compact #mark{height:110px} body.compact #wf{height:170px}
+body.compact .goal{padding:10px 14px 4px;font-size:15px}
+body.compact .sig{padding:5px 12px}
+body.compact #fg-wrap{height:360px} body.compact #sys-wrap{height:300px}
+body.compact .gal{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:8px}
+#lay-menu{position:fixed;top:calc(var(--toph) - 6px);right:16px;z-index:45;width:min(430px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.55);padding:4px 0 10px}
+#lay-menu .lm-h{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line)}
+#lay-menu .lm-r{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:7px 14px;font-size:13px;color:var(--dim);flex-wrap:wrap}
+#lay-menu .lm-b{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#lay-menu select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:12px var(--mono)}
+#lay-menu .lm-tip{margin:4px 14px;color:var(--faint);font-size:12px;line-height:1.5}
+#chat-card{--chat-fs:14px}
+.btn.fs{padding:3px 7px}
+.card h2{margin:0;padding:calc(var(--title-fs) * .85) 14px;font:600 var(--title-fs) var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#aab1c2;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:calc(var(--title-fs) * 3.6)}
+:root{--title-fs:12.5px}
+body.titles-s{--title-fs:11px} body.titles-l{--title-fs:14px} body.titles-xl{--title-fs:16px}
+.card h2 em{font-style:normal;color:var(--faint);letter-spacing:.04em;text-transform:none;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font:12px var(--mono);cursor:pointer;letter-spacing:0;text-transform:none;white-space:nowrap}
+.btn:hover{color:var(--text);border-color:#3a4152}
+.btn.pri{background:var(--accent);color:#04140d;border-color:var(--accent);font-weight:600}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default}
+.empty{padding:18px;color:var(--faint);font-size:13px}
+
+/* live */
+#specwrap{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+#spec{display:block;width:100%;height:150px;background:#0e1118}
+#wf{display:block;width:100%;height:240px;background:#05060a}
+#cursor{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.75);pointer-events:none;display:none}
+#cursor span{position:absolute;top:6px;left:6px;background:rgba(11,13,18,.92);border:1px solid var(--line);border-radius:6px;padding:2px 7px;font:12px var(--mono);white-space:nowrap;color:var(--text)}
+#cursor.flip span{left:auto;right:6px}
+#mark{position:absolute;top:0;height:150px;background:rgba(201,167,255,.16);border-left:1px solid rgba(201,167,255,.6);border-right:1px solid rgba(201,167,255,.6);pointer-events:none;display:none}
+.axis{display:flex;justify-content:space-between;padding:4px 10px 2px;font:11px var(--mono);color:var(--faint)}
+.wfnote{padding:0 10px 8px;font:11px var(--mono);color:var(--faint)}
+/* radio panel (also attachable inside the live spectrum panel) */
+.card.merged{display:none !important}
+#radio-body{padding:10px 14px 12px;display:flex;flex-direction:column;gap:10px;font-size:13px}
+#live-radio-slot{border-top:1px solid var(--line)}
+#live-radio-slot .lr-head{display:flex;align-items:center;gap:8px;padding:6px 14px 0;font:600 11px var(--mono);letter-spacing:.12em;color:#aab1c2;text-transform:uppercase}
+#live-radio-slot .lr-head span{flex:1}
+.rd-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+.rd-freq{font:600 24px var(--mono);color:var(--text);letter-spacing:.02em}
+.rd-freq small{font-size:14px;color:var(--dim)}
+.rd-sub{font:12px var(--mono);color:var(--dim)}
+.rd-chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:12px var(--mono)}
+.rd-chain .st{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:4px 8px;color:var(--text)}
+.rd-chain .st small{display:block;font-size:10px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.rd-chain .st.off{color:var(--faint)} .rd-chain .ar{color:var(--faint)}
+.rd-chain .tot{margin-left:4px;color:var(--accent)}
+.rd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.rd-f{border:1px solid #1d2230;border-radius:8px;padding:5px 8px;background:#10131b;min-width:0}
+.rd-f small{display:block;font:10px var(--mono);color:var(--faint);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rd-f b{font:600 13px var(--mono);color:var(--text);font-weight:600;word-break:break-all}
+.rd-chain .st.chg,.rd-freq.chg{border-color:var(--ai);color:var(--ai)}
+.rd-f.chg{border-color:var(--ai);background:rgba(201,167,255,.08);animation:rdflash 1.2s ease-out 1}
+@keyframes rdflash{from{background:rgba(201,167,255,.35)}to{background:rgba(201,167,255,.08)}}
+.rd-lvl{font:12px var(--mono);color:var(--dim)} .rd-lvl .ok{color:var(--accent)} .rd-lvl .warn{color:var(--warn)} .rd-lvl .bad{color:var(--bad)}
+.rd-chg{font:12px var(--mono);color:var(--dim)} .rd-chg summary{cursor:pointer;color:var(--faint)}
+.rd-chg div{padding:2px 0} .rd-chg i{font-style:normal;color:var(--ai)}
+/* signals */
+#sigs{display:flex;flex-direction:column}
+.sig{display:grid;grid-template-columns:118px 64px 1fr auto;gap:10px;align-items:center;padding:7px 14px;border-bottom:1px solid #1a1f2a;cursor:pointer;font-size:13px}
+.sig:hover,.sig.on{background:var(--panel2)}
+.sig .f{font:600 13.5px var(--mono);color:var(--text)}
+.sig .db{font:12px var(--mono);color:var(--accent)}
+.sig .bar{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--accent2),var(--accent));max-width:100%}
+.sig .k{font:11px var(--mono);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sig .x{grid-column:1/-1;font:11px var(--mono);color:var(--faint);margin-top:-4px}
+/* task */
+.goal{padding:14px 16px 6px;font-size:16px;font-weight:600}
+.goal.empty{color:var(--faint);font-weight:400}
+.prog{margin:6px 16px 12px;height:6px;border-radius:3px;background:var(--panel2);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .4s}
+.progtxt{display:flex;justify-content:space-between;padding:0 16px;color:var(--faint);font:11px var(--mono)}
+.jbtns{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:4px;vertical-align:middle} .jnote{color:var(--faint);font-size:11.5px;margin-top:3px}
+.badge.paused{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+#run-sel{max-width:220px}
+ol.steps{list-style:none;margin:6px 0 10px;padding:0 10px}
+ol.steps ol.steps{grid-column:2;margin:4px 0 0;padding:0 0 0 4px;border-left:1px dashed var(--line)}
+ol.steps ol.steps li{padding:3px 6px} ol.steps ol.steps .t{font-size:13px}
+ol.steps .tg{cursor:pointer;color:var(--faint);font:600 11px var(--mono);margin-left:6px;user-select:none}
+ol.steps li.closed > ol.steps{display:none}
+.th-list{display:flex;flex-direction:column;gap:8px}
+.th-item{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel2)}
+.th-item summary{cursor:pointer;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.th-item .g{font-weight:600} .th-item .w{color:var(--faint);font:12px var(--mono)} .th-item .o{color:var(--dim);font-size:12.5px;margin:4px 0}
+.th-item .pbar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin:4px 0} .th-item .pbar i{display:block;height:100%;background:var(--accent)}
+.th-item.fail .pbar i{background:var(--bad)} .th-item .notes{color:var(--dim);font-size:12px;margin:4px 0 0;padding-left:16px}
+#th-modal .gm{width:min(760px,96vw);max-height:calc(88dvh / var(--uiz));overflow:auto;display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+#th-q{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:13px var(--ui)}
+ol.steps li{display:grid;grid-template-columns:22px 1fr;gap:6px;padding:6px;border-radius:6px}
+ol.steps li.active{background:var(--panel2)}
+ol.steps .ic{font:600 13px var(--mono);text-align:center;color:var(--faint)}
+ol.steps li.unreported .ic{color:var(--faint)} ol.steps li.unreported .t{color:var(--faint)}
+ol.steps li.done .ic{color:var(--accent)} ol.steps li.failed .ic{color:var(--bad)} ol.steps li.active .ic{color:var(--warn);animation:pulse 1.2s infinite}
+ol.steps li.done .t{color:var(--dim)}
+ol.steps .n{grid-column:2;color:var(--dim);font-size:12px}
+@keyframes pulse{50%{opacity:.35}}
+.outcome{margin:0 16px 14px;padding:10px 12px;border-radius:8px;background:#11261f;color:#bff5df;border:1px solid #1f4b3b}
+.outcome.fail{background:#2a1418;color:#ffd0d7;border-color:#5a2430}
+/* activity */
+#act{max-height:560px;overflow:auto}
+.ev{display:grid;grid-template-columns:62px 52px 1fr;gap:8px;padding:8px 12px;border-bottom:1px solid #1a1f2a;font-size:13px}
+.ev .tm{color:var(--faint);font:11px var(--mono);padding-top:2px}
+.ev .k{font:600 10px var(--mono);letter-spacing:.08em;padding:2px 0;text-align:center;border-radius:4px;height:fit-content}
+.ev.tool .k{background:#1b2638;color:var(--accent2)} .ev.note .k{background:#261d38;color:var(--ai)} .ev.event .k{background:#1d2a24;color:var(--accent)} .ev.error .k{background:#381b22;color:var(--bad)}
+.ev.note .ti{color:#e7dcff}
+.ev .ti{font-weight:500;word-break:break-word}
+.ev .de{color:var(--dim);font:12px var(--mono);word-break:break-all;margin-top:2px}
+.ev .re{color:var(--dim);font-size:12px;margin-top:3px;white-space:pre-wrap;word-break:break-word}
+.ev .st{font:11px var(--mono);color:var(--faint);margin-left:6px}
+.ev.err .st{color:var(--bad)}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--line);border-top-color:var(--warn);border-radius:50%;animation:rot .8s linear infinite;vertical-align:-1px}
+@keyframes rot{to{transform:rotate(360deg)}}
+/* chat */
+#chat-card{display:flex;flex-direction:column;height:460px}
+@media (min-width:900px){ #chat-card.sized{height:var(--h)} }
+#chat-banner{padding:9px 14px;font-size:12.5px;color:var(--dim);border-bottom:1px solid var(--line);background:#0f1219;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#chat-banner b{color:var(--text);font-weight:600}
+#chat-log{flex:1;overflow-y:auto;padding:12px 12px 4px;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain}
+.msg{max-width:88%;padding:8px 12px;border-radius:14px;font-size:var(--chat-fs);line-height:1.45;word-wrap:break-word;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:#1d3a5f;border-bottom-right-radius:4px;white-space:pre-wrap}
+.msg.ai,.msg.agent{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.agent{border-color:#3a3156}
+.msg .who{display:block;font:600 10px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin-bottom:2px}
+.msg .meta{display:block;text-align:right;font:10.5px var(--mono);color:#8fb1dc;margin-top:3px}
+.msg p{margin:0 0 6px} .msg p:last-child{margin:0}
+.msg code{font:calc(var(--chat-fs) * .9) var(--mono);background:#0b0d12;padding:1px 4px;border-radius:4px}
+.msg pre{margin:6px 0;padding:8px;background:#0b0d12;border-radius:6px;overflow-x:auto;font:calc(var(--chat-fs) * .86)/1.4 var(--mono);white-space:pre}
+.msg ul,.msg ol{margin:4px 0;padding-left:20px}
+.msg .mdh{margin:10px 0 4px;line-height:1.3;color:var(--text);font-weight:650}
+.msg .mdh:first-child,.msg .who + .mdh{margin-top:2px}
+.msg .mdh1{font-size:1.32em} .msg .mdh2{font-size:1.2em} .msg .mdh3{font-size:1.1em} .msg .mdh4,.msg .mdh5,.msg .mdh6{font-size:1em}
+.msg hr{border:0;border-top:1px solid var(--line);margin:8px 0}
+.msg blockquote{margin:6px 0;padding:2px 0 2px 10px;border-left:3px solid #3a4152;color:var(--dim)}
+.msg a{color:#7aa8ff}
+.msg .mdt{overflow-x:auto;margin:6px 0}
+.msg table{border-collapse:collapse;font-size:.92em}
+.msg th,.msg td{border:1px solid var(--line);padding:3px 8px;text-align:left;vertical-align:top}
+.msg th{background:#0b0d12;color:var(--text)}
+.msg.tool{align-self:flex-start;max-width:100%;padding:3px 8px;font:calc(var(--chat-fs) * .82) var(--mono);color:var(--dim);background:transparent;border-left:2px solid #2c3446;border-radius:0}
+.msg.tool.ok{border-left-color:#2a5a49} .msg.tool.error{border-left-color:var(--bad);color:#ffb3c0}
+.msg.tool .r{display:block;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard{align-self:flex-start;width:min(560px,92%);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px 11px 7px;font-size:calc(var(--chat-fs) * .88);line-height:1.4}
+.tcard .th,.tcard .rs{cursor:pointer;user-select:none}
+.tcard .th{display:flex;align-items:center;gap:8px;min-width:0}
+.tcard .ic{flex:none;width:15px;text-align:center;font-size:.92em;color:#5fd3a0}
+.tcard.error .ic{color:var(--bad)} .tcard.running .ic{color:var(--dim)}
+.tcard .tt{flex:none;font-weight:600;color:var(--text)}
+.tcard .hn{flex:1;min-width:0;color:var(--faint);font:calc(var(--chat-fs) * .76) var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard .car{flex:none;color:var(--faint);font-size:.85em;transition:transform .15s}
+.tcard.open .car{transform:rotate(90deg)}
+.tcard .rs{color:var(--dim);margin:1px 0 0 23px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard.error{border-color:#5a2a33} .tcard.error .rs{color:#ffb3c0}
+.tcard .det{margin:7px 0 2px}
+.tcard .det .dh{display:flex;justify-content:space-between;align-items:center;margin:7px 0 3px;font:600 10.5px var(--ui);letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.tcard .det .dh button{font:11px var(--ui);background:none;border:1px solid var(--line);color:var(--dim);border-radius:6px;padding:1px 8px;cursor:pointer;text-transform:none;letter-spacing:0}
+.tcard .det pre{margin:0;max-height:320px;overflow:auto;background:#0b0e14;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:calc(var(--chat-fs) * .76)/1.45 var(--mono);color:#c3c8d4;white-space:pre-wrap;word-break:break-word}
+.tcard .det .nt{color:var(--faint);font-size:.9em}
+.msg.system{align-self:center;max-width:94%;text-align:center;font-size:calc(var(--chat-fs) * .86);color:var(--faint);background:transparent;padding:2px 8px}
+.typing{align-self:flex-start;padding:10px 14px;border-radius:14px;background:var(--panel2);display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{50%{opacity:.25}}
+#infer{padding:calc(var(--chat-fs) * .6) calc(var(--chat-fs) * .9) calc(var(--chat-fs) * .7);border-top:1px solid var(--line);background:#0f1219;font:calc(var(--chat-fs) * .9)/1.35 var(--mono);color:var(--dim)}
+#infer .il{display:flex;gap:calc(var(--chat-fs) * .7);align-items:baseline;flex-wrap:wrap}
+#infer .ph{color:var(--ai);font:600 var(--chat-fs) var(--ui)}
+#infer .nums{flex:1 1 12em;min-width:0;color:var(--text);opacity:.85}
+#infer .tm{color:var(--text);font-weight:600;white-space:nowrap}
+#infer .ib{height:max(8px, calc(var(--chat-fs) * .65));border-radius:999px;background:var(--panel2);overflow:hidden;margin-top:calc(var(--chat-fs) * .5);border:1px solid #262c3a}
+#infer .ib i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ai),var(--accent2));transition:width .25s linear}
+#infer .ib.indet i{width:30% !important;animation:indet 1.3s ease-in-out infinite}
+@keyframes indet{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
+.msg.streaming::after{content:"▍";color:var(--ai);animation:blink 1s infinite;margin-left:2px}
+.lastcall{font:calc(var(--chat-fs) * .8) var(--mono);color:var(--faint)}
+#chat-banner{font-size:calc(var(--chat-fs) * .9)}
+#chat-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);align-items:flex-end}
+#chat-in{flex:1;resize:none;max-height:140px;min-height:40px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#0b0d12;color:var(--text);font:max(15px, var(--chat-fs))/1.4 var(--ui);outline:none}
+#chat-in:focus{border-color:#3a4152}
+#chat-send{height:40px;padding:0 16px;border-radius:12px;border:0;background:var(--accent);color:#04140d;font-weight:600;cursor:pointer}
+#chat-send:disabled{opacity:.4}
+/* gallery */
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:12px}
+.gal figure{margin:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:zoom-in}
+.gal img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}
+.gal figcaption{padding:6px 8px;font-size:12px;color:var(--dim)}
+.gal figure{position:relative}
+.gal .gmeta{display:block;font:11px var(--mono);color:var(--faint);margin-top:2px}
+.gal .gcount{position:absolute;top:6px;right:6px;background:rgba(10,12,18,.85);border:1px solid var(--line);color:var(--text);font:11px var(--mono);padding:1px 6px;border-radius:10px}
+.galbar{padding:8px 12px 0;display:flex;flex-direction:column;gap:6px}
+.galchips{display:flex;flex-wrap:wrap;gap:5px}
+.galchips button{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:12px;padding:2px 9px;font:12px var(--ui);cursor:pointer}
+.galchips button.on{border-color:var(--accent);color:var(--text)}
+.galctl{display:flex;flex-wrap:wrap;gap:6px}
+.galctl input,.galctl select{background:#0b0d12;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:3px 7px;font:12px var(--ui);min-width:0}
+.galctl input[type=search]{flex:1 1 140px} .galctl input[type=number]{width:84px}
+#gal-modal .gm{max-width:min(1400px,96vw);max-height:calc(92dvh / var(--uiz));overflow:auto;display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+#gal-modal .gm img{max-width:100%;border-radius:6px;display:block}
+#gal-modal .gm .cap{color:var(--dim);font-size:12.5px;margin:4px 2px 0}
+/* jobs */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid #1a1f2a;vertical-align:top}
+th{font:600 10px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+td.mono{font-family:var(--mono)}
+.badge{font:600 11px var(--mono);padding:1px 7px;border-radius:10px;background:var(--panel2);color:var(--dim)}
+.badge.running{color:var(--warn)} .badge.finished{color:var(--accent)} .badge.failed,.badge.finished_with_errors{color:var(--bad)}
+.outs a{color:var(--accent2);text-decoration:none;font:12px var(--mono);margin-right:10px;word-break:break-all}
+audio{height:34px;max-width:100%;vertical-align:middle;margin:4px 0}
+details summary{cursor:pointer;color:var(--faint);font-size:12px}
+pre.log{margin:6px 0 0;padding:8px;background:#0a0c11;border-radius:6px;max-height:200px;overflow:auto;font:11px/1.4 var(--mono);color:#b9c0d0;white-space:pre-wrap}
+/* flowgraph + system map */
+.fgbar{display:flex;gap:8px;align-items:center;font:12px var(--mono);color:var(--dim);text-transform:none;letter-spacing:0;min-width:0}
+.fgbar select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:12px var(--mono);max-width:46vw}
+#fg-wrap{position:relative;height:440px;background:radial-gradient(circle at 1px 1px,#1d2230 1px,transparent 0) 0 0/22px 22px,#0d1016;cursor:grab;overflow:hidden;touch-action:none}
+#fg-wrap:active{cursor:grabbing}
+#fg-svg{display:block;width:100%;height:100%}
+#fg-key{position:absolute;left:10px;bottom:10px;z-index:3;background:rgba(14,18,26,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px 7px;font:11.5px/1.5 var(--ui);color:var(--dim);max-width:270px;cursor:default}
+#fg-key[hidden]{display:none}
+#fg-key .kh{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--faint);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;user-select:none}
+#fg-key.closed .kr{display:none}
+#fg-key .kr{display:flex;align-items:center;gap:7px;white-space:nowrap}
+#fg-key .kr.off{opacity:.38}
+#fg-key .sw{display:inline-block;width:9px;height:12px;border-radius:2px;flex:none}
+#fg-key .sw.open{background:#0d1016 !important;border:1.6px solid #9aa0ad;width:6px;height:9px}
+#fg-key .ln{display:inline-block;width:22px;height:0;border-top:2px dashed #9aa0ad;flex:none}
+#fg-key .ln.run{border-top-color:#3399ff}
+#fg-key .hint{color:var(--faint);font-size:10.5px;margin-top:3px;white-space:normal}
+#fg-tip{position:absolute;z-index:6;pointer-events:none;display:none;max-width:330px;background:rgba(9,12,18,.97);border:1px solid #3a4152;border-radius:8px;padding:7px 10px;font:12px/1.45 var(--ui);color:var(--dim);box-shadow:0 6px 24px rgba(0,0,0,.45)}
+#fg-tip b{color:var(--text);font-weight:600}
+#fg-tip .ty{font:11px var(--mono);color:var(--faint)}
+#fg-tip .ai{color:#9fd3a8;font-size:11px}
+#fg-tip .ask{color:#ffb347;font-size:11px}
+#fg-tip .er{color:var(--bad)}
+#fg-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--faint);pointer-events:none;text-align:center;padding:20px}
+.fg-errs{padding:8px 14px;color:var(--bad);font:12px var(--mono);border-top:1px solid var(--line)}
+.fg-log{border-top:1px solid var(--line);padding:6px 14px 10px;font:12px/1.5 var(--ui);color:var(--dim);max-height:190px;overflow:auto}
+.fg-log b{color:var(--text);font:600 11px var(--mono)}
+.fg-log .st{display:flex;gap:8px;align-items:baseline;padding:2px 0}
+.fg-log .st .n{color:var(--faint);font:11px var(--mono);min-width:22px;text-align:right}
+.fg-log .st .why{color:var(--dim);font-style:italic}
+.fg-log .st.new{color:var(--text)} .fg-log .st.new .n{color:var(--accent)}
+.fg-log .st.edit b{color:#7aa8ff}
+.fg-log .hd{display:flex;justify-content:space-between;color:var(--faint);font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding-bottom:2px}
+@keyframes fgin{from{opacity:0;transform:translateY(8px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes fgglow{0%,60%{stroke:#4ade80;stroke-width:3}100%{}}
+.fg-in{animation:fgin .45s ease-out both;transform-box:fill-box;transform-origin:center}
+.fg-in .frame{animation:fgglow 4s ease-out both}
+.fg-open{animation:pulse 1.4s ease-in-out infinite}
+.pill-build{color:#7aa8ff}
+#fg-follow.on{color:#04140d;background:var(--accent);border-color:var(--accent);font-weight:600}
+#fg-ai{padding:6px 14px;font:12px var(--ui);color:var(--dim);border-bottom:1px solid var(--line);background:#0f1219;display:flex;gap:10px;align-items:center}
+#fg-ai b{color:var(--text);font-family:var(--mono);font-weight:600}
+#fg-notes{padding:5px 14px;font:12px var(--ui);color:var(--dim);border-bottom:1px solid var(--line);background:#0f1219}
+#fg-notes summary{cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fg-notes .fgn-body{padding:4px 0 2px;display:flex;flex-direction:column;gap:3px;max-height:180px;overflow:auto}
+#fg-notes .k{font:600 10.5px var(--mono);text-transform:uppercase;color:var(--faint);margin-right:6px}
+#fg-notes .k.quirk,#fg-notes .k.fails_with{color:var(--warn)} #fg-notes .k.works_with,#fg-notes .k.result{color:var(--accent)}
+#fg-ai .dot{margin-right:0}
+.card.maxed{position:fixed !important;inset:calc(8px + var(--sat)) calc(8px + var(--sar)) calc(8px + var(--sab)) calc(8px + var(--sal));z-index:55;height:auto !important;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.card.maxed #fg-wrap{flex:1 1 auto;height:auto !important;min-height:0}
+.card.maxed .rsz,.card.maxed .grip,.card.maxed .hidebtn{display:none}
+body.fgmax{overflow:hidden}
+#sys-wrap{height:360px;background:#0d1016;overflow-x:auto;overflow-y:hidden}
+#sys-svg{display:block;width:100%;height:100%;min-width:760px}
+@keyframes flow{to{stroke-dashoffset:-24}}
+.flow{stroke-dasharray:7 5;animation:flow .8s linear infinite}
+.pill-ok{color:var(--accent)} .pill-run{color:var(--warn)} .pill-bad{color:var(--bad)}
+.acard{align-self:stretch;background:#13261d;border:1px solid #2e6b4f;border-radius:12px;padding:9px 12px;font-size:calc(var(--chat-fs) * .95);line-height:1.45}
+.acard .ah{font:600 11px var(--ui);letter-spacing:.05em;text-transform:uppercase;color:#7fd8a8;margin-bottom:3px}
+.acard .ai{color:var(--text);font-weight:600}
+.acard .aw{color:var(--dim);margin-top:3px} .acard .ae{color:var(--faint);font-size:.92em}
+.acard .ab{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.acard .ab button{background:#2e6b4f;color:#fff;border:0;border-radius:7px;padding:5px 12px;font:inherit;font-size:.92em;cursor:pointer}
+.acard .ab button.no{background:#3a4152}
+.acard .ab input{flex:1;min-width:140px;background:#0b0d12;border:1px solid var(--line);color:var(--text);border-radius:7px;padding:5px 8px;font:inherit;font-size:.92em}
+.acard.done{background:var(--panel2);border-color:var(--line)} .acard.done .ah{color:var(--faint)}
+#action-banner{margin:8px 14px 0;padding:8px 12px;border:1px solid #2e6b4f;background:#13261d;color:#d9f5e6;border-radius:8px;font-size:13px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+#action-banner[hidden]{display:none}
+#action-banner button{background:#2e6b4f;color:#fff;border:0;border-radius:6px;padding:4px 11px;font:inherit;cursor:pointer}
+#action-banner button.no{background:#3a4152}
+#update-banner{margin:8px 14px 0;padding:8px 12px;border:1px solid #2f5d8a;background:#12233a;color:#cfe4ff;border-radius:8px;font-size:13px;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+#update-banner[hidden]{display:none}
+#update-banner button{background:#2f6fb0;color:#fff;border:0;border-radius:6px;padding:4px 12px;font:inherit;cursor:pointer}
+#update-banner button:disabled{opacity:.6;cursor:default}
+#update-banner small{opacity:.75}
+#rel-banner{margin:8px 14px 0;padding:8px 12px;border:1px solid #2f7a5d;background:#10261e;color:#cff5e4;border-radius:8px;font-size:13px;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+#rel-banner[hidden]{display:none}
+#rel-banner button{background:#2a9a6c;color:#fff;border:0;border-radius:6px;padding:4px 12px;font:inherit;cursor:pointer}
+#rel-banner button.ghost{background:none;border:1px solid #2f7a5d;color:#cff5e4}
+#rel-banner button:disabled{opacity:.6;cursor:default}
+#rel-banner small{opacity:.75}
+#upd-body input{width:100%;box-sizing:border-box;margin:4px 0}
+#stuck-banner{margin:6px 14px 10px;padding:8px 12px;border:1px solid #6b4a17;background:#2a2012;color:#ffd68a;border-radius:8px;font-size:13px;line-height:1.4}
+/* decoded data */
+#dec{overflow:auto;min-height:140px;max-height:var(--h,460px);padding:10px 14px}
+.card.sized #dec{max-height:none;flex:1 1 auto}
+#dec-sel{max-width:260px}
+.rdscard{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:baseline;padding:6px 2px 12px}
+.rdscard .ps{grid-column:1/-1;font:700 calc(var(--chat-fs,14px) * 2.4)/1.1 var(--mono);letter-spacing:.12em;color:var(--accent)}
+.rdscard .rt{grid-column:1/-1;font:500 calc(var(--chat-fs,14px) * 1.2)/1.35 var(--ui);color:var(--text)}
+.rdscard .k{font:600 11px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+.rdscard .v{font:13px var(--mono);color:var(--text)}
+.rdscard .hist{grid-column:1/-1;color:var(--dim);font-size:12.5px}
+.chips{display:flex;gap:5px;flex-wrap:wrap}.chips span{border:1px solid var(--line);border-radius:6px;padding:1px 6px;font:11px var(--mono);color:var(--dim)}
+.chips span.on{color:var(--accent);border-color:#2f6f53}
+table.dtab{border-collapse:collapse;width:100%;font:12.5px var(--mono)}
+table.dtab th{position:sticky;top:-10px;background:var(--panel);text-align:left;color:var(--faint);font-weight:600;font-size:11px;letter-spacing:.06em;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.dtab td{padding:4px 8px;border-bottom:1px solid #1a1f2a;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+table.dtab tr.fresh td{animation:fresh 2s ease-out}
+@keyframes fresh{from{background:#173a2b}to{background:transparent}}
+.dlog{font:12px/1.5 var(--mono);color:#b9c0d0}
+.dlog div{padding:3px 0;border-bottom:1px solid #161a23;word-break:break-word}
+.dlog b{color:var(--faint);font-weight:500;margin-right:6px}
+.dsec{margin:6px 0 14px}.dsec h5{margin:0 0 6px;font:600 11px var(--mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+#pr-list label{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid #1a1f2a;font-size:13px}
+#pr-list code,#pr-arch code{color:var(--text)}
+#pr-list small,#pr-arch small{color:var(--faint)}
+.h-works{color:var(--accent)} .h-failed,.h-invalid{color:var(--bad)} .h-ran_nothing,.h-draft{color:var(--warn)}
+/* modals */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:safe center;justify-content:safe center;z-index:40;padding:20px;overflow:auto;overscroll-behavior:contain}
+/* the dashboard's UI zoom (html style.zoom) scales vh units too: divide by it so a sheet always fits the window */
+:root{--uiz:1}
+#img-modal{cursor:zoom-out} #img-modal img{max-width:100%;max-height:100%;border-radius:6px}
+.sheet{width:min(720px,100%);max-height:calc((100dvh - 40px) / var(--uiz));overflow:auto;overscroll-behavior:contain;flex-shrink:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0 0 10px}
+.sheet h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font:600 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--panel);z-index:1}
+.sheet section{padding:12px 18px;border-bottom:1px solid #1a1f2a}
+.sheet h4{margin:0 0 8px;font-size:14px}
+.sheet p,.sheet li{color:var(--dim);font-size:13px;margin:4px 0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.row label{min-width:86px;color:var(--dim);font-size:13px}
+.row input[type=text],.row input[type=password],.row select{flex:1;min-width:180px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:#0b0d12;color:var(--text);font:15px var(--mono)}
+.link{display:flex;gap:8px;align-items:center;margin:6px 0;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#0f1219}
+.link code{flex:1;font:12.5px var(--mono);color:var(--text);word-break:break-all}
+.link small{display:block;color:var(--faint);font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.snip{font:12px/1.45 var(--mono);background:#0b0d12;border:1px solid var(--line);border-radius:8px;padding:8px 10px;white-space:pre-wrap;word-break:break-all;color:#b9c0d0}
+.ok-t{color:var(--accent)} .warn-t{color:var(--warn)} .bad-t{color:var(--bad)}
+#toast{position:fixed;left:50%;bottom:calc(20px + var(--navh) + var(--sab));transform:translateX(-50%);background:#1d2230;border:1px solid var(--line);padding:8px 14px;border-radius:10px;font-size:13px;z-index:50;display:none;max-width:90vw}
+/* bottom tabs (phones / small tablets) */
+#tabs{display:none}
+.tbadge{position:absolute;top:4px;left:calc(50% + 7px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--bad);color:#fff;font:600 10px/16px var(--ui);text-align:center;display:none}
+
+@media (max-width:899px){
+  :root{--navh:58px}
+  header{gap:10px;padding:8px 12px;padding-top:calc(8px + var(--sat));padding-left:calc(12px + var(--sal));padding-right:calc(12px + var(--sar))}
+  .brand span{display:none}
+  .brand b{font-size:15px}
+  .pill{min-width:auto;padding:0 10px}
+  .pill .big{font-size:16px}
+  #sessbar{padding:6px 12px;padding-left:calc(12px + var(--sal));padding-right:calc(12px + var(--sar))}
+  #sessbar .lbl{display:none}
+  #follow span{display:none}
+  main{display:block;padding:10px;padding-left:calc(10px + var(--sal));padding-right:calc(10px + var(--sar));padding-bottom:calc(var(--navh) + var(--sab) + 12px)}
+  #cols,.zone{display:contents}
+  .vsplit,.card .grip,.card .hidebtn,.card .rsz,#layout-btn{display:none !important}
+  .card.lay-hidden{display:flex !important}
+  .card{margin-bottom:10px}
+  #chat-card{--chat-fs:15px}
+  body:not([data-tab="live"]) [data-tab="live"], body:not([data-tab="chat"]) [data-tab="chat"],
+  body:not([data-tab="task"]) [data-tab="task"], body:not([data-tab="graph"]) [data-tab="graph"],
+  body:not([data-tab="runs"]) [data-tab="runs"]{display:none !important}
+  #spec{height:120px} #mark{height:120px}
+  #wf{height:calc(100dvh - var(--toph) - var(--navh) - var(--sab) - 120px - 56px - 140px);min-height:170px;max-height:380px}
+  #chat-card{height:calc(100dvh - var(--toph) - var(--navh) - var(--sab) - 22px);border-radius:12px}
+  #act{max-height:none}
+  #fg-wrap{height:min(62dvh,560px);min-height:300px}
+  #sys-wrap{height:300px}
+  .gal{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .ev{grid-template-columns:54px 46px 1fr;padding:8px 10px}
+  .sig{grid-template-columns:104px 54px 1fr;padding:8px 12px}
+  .sig .k{grid-column:1/-1;margin-top:-4px}
+  table.jobs thead{display:none}
+  table.jobs tr{display:grid;grid-template-columns:1fr auto;border-bottom:1px solid #1a1f2a;padding:6px 0}
+  table.jobs td{border:0;padding:3px 12px}
+  table.jobs td.outs{grid-column:1/-1}
+  table.mon{font-size:12px} table.mon th,table.mon td{padding:6px 8px}
+  #tabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;height:calc(var(--navh) + var(--sab));padding-bottom:var(--sab);padding-left:var(--sal);padding-right:var(--sar);background:rgba(14,17,24,.97);border-top:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #tabs button{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:none;color:var(--faint);font:600 10.5px var(--ui);letter-spacing:.02em;cursor:pointer}
+  #tabs button svg{width:22px;height:22px}
+  #tabs button.on{color:var(--accent)}
+}
+@media (max-width:420px){
+  .pill.opt{display:none}
+}
+</style>
+</head>
+<body data-tab="live">
+<div id="top">
+<header>
+  <div class="brand"><b>SDR PILOT</b><span>AI radio console</span></div>
+  <div id="pills">
+    <div class="pill"><small>Link</small><div id="h-link"><span class="dot"></span>—</div></div>
+    <div class="pill"><small id="h-freq-l">Center</small><div class="big" id="h-freq">—</div></div>
+    <div class="pill opt"><small>Rate</small><div id="h-rate">—</div></div>
+    <div class="pill opt"><small>Source</small><div id="h-src">—</div></div>
+    <div class="pill opt"><small>Stream</small><div id="h-meas">—</div></div>
+    <div class="pill opt"><small>Flowgraphs</small><div id="h-jobs">0 running</div></div>
+    <div class="pill opt"><small>Monitor</small><div id="h-mon">off</div></div>
+  </div>
+  <button class="iconbtn" id="layout-btn" title="Layout: arrange, resize and hide panels" aria-label="Layout">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="11" height="8" rx="1.5"/><rect x="3" y="14" width="11" height="7" rx="1.5"/><rect x="17" y="3" width="4" height="18" rx="1.5"/></svg>
+  </button>
+  <button class="iconbtn" id="settings-btn" title="Settings, remote access and the dashboard agent" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+</header>
+<div id="update-banner" hidden></div>
+<div id="rel-banner" hidden></div>
+<div id="action-banner" hidden></div>
+<div id="sessbar"><span class="lbl">Chats</span><span id="sesslist"><span class="sess"><b>waiting…</b></span></span>
+  <button class="chipbtn" id="clear-ended" style="display:none" title="Remove every chat that has ended" onclick="forget(null)">clear ended</button>
+  <button class="chipbtn" id="agent-chip" title="Chat with the dashboard agent (any model, runs on this PC)">+ Agent</button>
+  <label id="follow" title="Switch to whichever chat is active"><input type="checkbox" id="followcb" checked><span>follow active</span></label></div>
+</div>
+<div id="stale" style="display:none;padding:9px 20px;background:#2a2312;border-bottom:1px solid #5a4a1f;color:#ffd68a;font-size:13px"></div>
+<main>
+  <div id="cols"></div>
+  <div id="bottom" class="zone" data-zone="bottom"></div>
+  <div id="pool" hidden>
+    <section class="card" data-tab="live" id="p-live" data-grow="specwrap">
+      <h2>Live spectrum <em id="live-note">waiting for radio</em></h2>
+      <div id="specwrap"><canvas id="spec"></canvas><canvas id="wf"></canvas><div id="mark"></div><div id="cursor"><span></span></div></div>
+      <div class="axis" id="axis"><span>—</span><span>—</span><span>—</span></div>
+      <div class="wfnote" id="wfnote">tap or hover the waterfall to read a frequency</div>
+      <div id="stuck-banner" hidden></div>
+      <div id="live-radio-slot" hidden><div class="lr-head"><span>Radio settings</span><button class="btn" id="lr-more" title="show every setting, not just the main ones">all settings</button><button class="btn" onclick="radioAttach(false)" title="move the radio settings back to their own panel">⇱ own panel</button></div></div>
+    </section>
+    <section class="card" data-tab="live" id="p-radio" data-grow="radio-home">
+      <h2>Radio <span class="fgbar"><em id="radio-note">what the AI can change</em><button class="btn" onclick="radioAttach(true)" title="show these settings inside the Live spectrum panel, under the waterfall">⇲ into spectrum</button></span></h2>
+      <div id="radio-home"><div id="radio-body"><div class="empty">The receiver's settings appear here once the radio is connected.</div></div></div>
+    </section>
+    <section class="card" data-tab="live" id="p-sigs" data-grow="sigs">
+      <h2>Signals <em id="sig-note">transmitters seen in the last 30 s</em></h2>
+      <div id="sigs"><div class="empty">Transmitters appear here once the radio is streaming.</div></div>
+    </section>
+    <section class="card" data-tab="live" id="p-gal" data-grow="gal">
+      <h2>What the AI looked at <em id="img-count"></em></h2>
+      <div class="galbar" id="galbar">
+        <div class="galchips" id="gal-kinds"></div>
+        <div class="galctl">
+          <input id="gal-q" type="search" placeholder="search captions">
+          <input id="gal-fmin" type="number" step="any" placeholder="MHz from" title="frequency range (MHz)">
+          <input id="gal-fmax" type="number" step="any" placeholder="to">
+          <select id="gal-sort" title="sort"><option value="newest">newest</option><option value="oldest">oldest</option><option value="freq_asc">frequency ↑</option><option value="freq_desc">frequency ↓</option><option value="kind">type</option></select>
+          <select id="gal-scope" title="which AI"><option value="all">all chats</option><option value="this">this chat</option></select>
+        </div>
+      </div>
+      <div class="gal" id="gal"><div class="empty">Spectrum snapshots and signal analyses will appear here.</div></div>
+    </section>
+    <section class="card" data-tab="task" id="p-task" data-grow="steps">
+      <h2>Current task <span class="fgbar"><em id="task-time"></em><button class="btn" id="task-hist" title="Previous tasks - what the AI worked on and how far it got">🕘 history</button></span></h2>
+      <div id="goal" class="goal empty">No task yet — ask the AI to do something with the radio.</div>
+      <div class="prog"><i id="bar"></i></div>
+      <div class="progtxt"><span id="ptxt"></span><span id="pcount"></span></div>
+      <ol class="steps" id="steps"></ol>
+      <div id="outcome"></div>
+    </section>
+    <section class="card" data-tab="chat" id="chat-card" data-grow="chat-log">
+      <h2>Chat <span class="fgbar"><em id="chat-mode"></em><button class="btn" id="chat-report" title="What is the AI doing? Shows a summary of recent activity now and asks the AI for a short report">📋 report</button><button class="btn fs" onclick="chatFont(-1)" title="smaller text">A−</button><button class="btn fs" onclick="chatFont(1)" title="larger text">A+</button><button class="btn" id="chat-stop" hidden>stop</button><button class="btn" id="chat-new" hidden>new chat</button></span></h2>
+      <div id="chat-banner"></div>
+      <div id="chat-log"></div>
+      <div id="infer" hidden><div class="il"><span class="ph" id="inf-ph"></span><span class="nums" id="inf-nums"></span><span class="tm" id="inf-tm"></span></div><div class="ib" id="inf-bar"><i id="inf-fill"></i></div></div>
+      <form id="chat-form" autocomplete="off"><textarea id="chat-in" rows="1" placeholder="Message the AI…" enterkeyhint="send"></textarea><button id="chat-send" type="submit">Send</button></form>
+    </section>
+    <section class="card" data-tab="task" id="p-act" data-grow="act">
+      <h2>Activity <em id="act-count"></em></h2>
+      <div id="act"><div class="empty">Tool calls and the AI's notes stream in here.</div></div>
+    </section>
+  <section class="card full" data-tab="graph" id="p-fg" data-grow="fg-wrap">
+    <h2>Flowgraph <span class="fgbar"><span id="fg-status"></span><button class="btn" id="fg-follow" title="Follow the AI: always show the flowgraph it is building, editing or running">◎ follow AI</button><select id="fg-sel" aria-label="flowgraph"></select><button class="btn" id="fg-tidy" title="Archive failed, unfinished, duplicate and superseded flowgraphs">tidy up</button><button class="btn" id="fg-fit">fit</button><button class="btn" id="fg-max" title="Give the flowgraph the whole screen (Esc to return)">⛶</button></span></h2>
+    <div id="fg-ai" style="display:none"></div>
+    <details id="fg-notes" style="display:none"><summary></summary><div class="fgn-body"></div></details>
+    <div id="fg-wrap"><svg id="fg-svg"></svg><div id="fg-key" hidden></div><div id="fg-tip"></div><div id="fg-msg">The flowgraph the AI builds appears here, laid out the way GNU Radio Companion shows it.</div></div>
+    <div class="fg-errs" id="fg-errs" style="display:none"></div>
+    <div class="fg-log" id="fg-log" style="display:none"></div>
+  </section>
+  <section class="card full" data-tab="graph" id="p-sys" data-grow="sys-wrap">
+    <h2>System map <em>data flow between the AI, SDR Pilot, SDRangel and GNU Radio</em></h2>
+    <div id="sys-wrap"><svg id="sys-svg" viewBox="0 0 1160 360" preserveAspectRatio="xMidYMid meet"></svg></div>
+  </section>
+  <section class="card full" data-tab="runs" id="p-dec" data-grow="dec">
+    <h2>Decoded data <span class="fgbar"><em id="dec-note"></em><select id="dec-sel" aria-label="decoder job"></select></span></h2>
+    <div id="dec"><div class="empty">Live decoder output appears here - RDS station name and RadioText, aircraft, APRS, BLE devices, packets - from any flowgraph that sends its results to an sp_data_sink (the recipes do).</div></div>
+  </section>
+  <section class="card full" data-tab="runs" id="p-runs" data-grow="jobs">
+    <h2>Flowgraph runs <span class="fgbar"><em>outputs play right here</em><select id="run-sel" aria-label="flowgraph to run"><option value="">run a flowgraph…</option></select><button class="btn" id="run-go" title="Start the chosen flowgraph as a new job">▶ run</button><button class="btn danger" id="run-stopall" title="Stop every running or paused job in this chat" hidden>stop all</button></span></h2>
+    <div id="jobs"><div class="empty">No flowgraphs run yet.</div></div>
+  </section>
+  <section class="card full" data-tab="runs" id="mon-card" data-grow="mon" style="display:none">
+    <h2>Intermittent signal monitor <span class="fgbar"><em id="mon-note"></em><button class="btn danger" id="mon-stop">stop</button></span></h2>
+    <div id="mon"></div>
+  </section>
+  </div>
+</main>
+<nav id="tabs">
+  <button data-go="live" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 14h3l2-7 3 13 3-10 2 6 2-2h5"/></svg>Live</button>
+  <button data-go="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>Chat<span class="tbadge" id="b-chat"></span></button>
+  <button data-go="task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Task<span class="tbadge" id="b-task"></span></button>
+  <button data-go="graph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><path d="M8 12h4m0 0V6h4m-4 6v6h4"/></svg>Flowgraph<span class="tbadge" id="b-graph" style="background:#3b6fd8"></span></button>
+  <button data-go="runs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></svg>Runs<span class="tbadge" id="b-runs"></span></button>
+</nav>
+<div id="lay-menu" hidden>
+  <div class="lm-h">Layout <button class="btn" onclick="layMenu(false)">done</button></div>
+  <div class="lm-r"><span>SDR Pilot copies</span><a class="btn" href="instances" target="_blank" title="Every running SDR Pilot (background host and each chat): ports, versions, radio use, flowgraphs - pause, stop, restart">manage instances ↗</a></div>
+  <div class="lm-r"><span>Presets</span><span class="lm-b"><button class="btn" onclick="layPreset('default')">default</button><button class="btn" onclick="layPreset('chat')">chat focus</button><button class="btn" onclick="layPreset('radio')">radio focus</button><button class="btn" onclick="layPreset('flowgraph')">flowgraph focus</button><button class="btn" onclick="layPreset('wide')">widescreen</button></span></div>
+  <div class="lm-r"><span>Columns</span><span class="lm-b"><button class="btn" onclick="layCols(1)">1</button><button class="btn" onclick="layCols(2)">2</button><button class="btn" onclick="layCols(3)">3</button><button class="btn" onclick="layCols(4)">4</button></span></div>
+  <div class="lm-r"><span>Interface size</span><select id="lm-scale" onchange="layScale(this.value)"></select></div>
+  <div class="lm-r"><span>Panel titles</span><select id="lm-titles" onchange="layTitles(this.value)"><option value="s">small</option><option value="m">medium</option><option value="l">large</option><option value="xl">extra large</option></select></div>
+  <div class="lm-r"><label><input type="checkbox" id="lm-compact" onchange="layCompact(this.checked)"> compact (smaller headers, spacing and default heights)</label></div>
+  <div class="lm-r"><span>Tool calls in chat</span><select id="lm-tools" onchange="layToolStyle(this.value)"><option value="cards">cards (click to open)</option><option value="lines">compact lines (classic)</option></select></div>
+  <div class="lm-r"><span>Chat text</span><span class="lm-b"><button class="btn" onclick="chatFont(-1)">A−</button><span id="lm-fs"></span><button class="btn" onclick="chatFont(1)">A+</button></span></div>
+  <div class="lm-r" id="lm-hidden-row"><span>Hidden</span><span class="lm-b" id="lm-hidden"></span></div>
+  <p class="lm-tip">Drag a panel by <b>⠿</b> in its title to move it (between columns, or to the full-width area at the bottom). Drag its bottom edge to resize it (double-click the edge to undo), drag the gaps between columns to change their width, and use <b>×</b> to hide a panel. Saved in this browser.</p>
+  <div class="lm-r"><button class="btn danger" onclick="layReset()">reset layout</button></div>
+</div>
+<div class="modal" id="img-modal" onclick="this.style.display='none'"><img id="modal-img" alt=""></div>
+<div class="modal" id="th-modal" onclick="if(event.target===this)this.style.display='none'"><div class="gm" id="gal-modal-th"><div style="display:flex;gap:8px;align-items:center"><b style="flex:1">Task history</b><input id="th-q" placeholder="search goals, steps, notes…" style="flex:2;min-width:0"><button class="btn" onclick="$('th-modal').style.display='none'">close</button></div><div class="th-list" id="th-list"></div></div></div>
+<div class="modal" id="gal-modal" onclick="if(event.target===this)this.style.display='none'"><div class="gm" id="gal-modal-body"></div></div>
+<div class="modal" id="set-modal">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h3>Settings <button class="btn" onclick="closeSettings()">close</button></h3>
+    <section id="set-remote"><h4>Open this dashboard on your phone or tablet</h4><div id="remote-body" class="empty">Loading…</div></section>
+    <section id="set-ctx"><h4>AI context</h4><div id="ctx-body"></div></section>
+    <section id="set-storage"><h4>Storage</h4><div id="storage-body"></div></section>
+    <section id="set-agent"><h4>Dashboard agent</h4><div id="agent-body"></div></section>
+    <section id="set-mcp"><h4>Use SDR Pilot from other AI apps and devices</h4><div id="mcp-body"></div></section>
+    <section id="set-update"><h4>Updates</h4><div id="upd-body"></div></section>
+  </div>
+</div>
+<div class="modal" id="prune-modal" onclick="this.style.display='none'">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h3>Tidy up flowgraphs <button class="btn" onclick="$('prune-modal').style.display='none'">close</button></h3>
+    <section><p>These look like abandoned attempts: they don't validate, were never finished, crashed, are exact copies, or an earlier try that a working version replaced. Archiving moves them to <code>flowgraphs/_archive</code> - nothing is deleted, and you can restore any of them below. Flowgraphs that are running or work are never listed.</p>
+      <div class="row"><label>untouched for</label><select id="pr-age" onchange="openPrune()"><option value="0.25">15 min</option><option value="1" selected>1 hour</option><option value="24">1 day</option><option value="168">1 week</option></select></div>
+      <div id="pr-list" class="empty">Loading…</div>
+      <div class="row"><button class="btn" id="pr-go">archive selected</button><button class="btn" onclick="document.querySelectorAll('#pr-list input').forEach(c => c.checked = !c.checked)">invert selection</button></div></section>
+    <section><h4>Archived</h4><div id="pr-arch" class="empty">—</div></section>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const $ = id => document.getElementById(id);
+const KEY = document.querySelector('meta[name="sdrpilot-key"]').content;
+const PAGE_VERSION = document.querySelector('meta[name="sdrpilot-version"]').content;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtHz = h => !h ? "—" : h >= 1e9 ? (h/1e9).toFixed(6)+" GHz" : h >= 1e6 ? (h/1e6).toFixed(4)+" MHz" : h >= 1e3 ? (h/1e3).toFixed(2)+" kHz" : h.toFixed(0)+" Hz";
+const fmtRate = r => !r ? "—" : (r/1e6).toFixed(r % 1e6 ? 3 : 0) + " MS/s";
+const tstr = t => new Date(t*1000).toLocaleTimeString([], {hour12:false});
+const dur = s => s == null ? "" : s < 1 ? (s*1000).toFixed(0)+" ms" : s < 60 ? s.toFixed(1)+" s" : Math.floor(s/60)+"m "+Math.round(s%60)+"s";
+const mobile = () => matchMedia("(max-width:899px)").matches;
+const visible = tab => !mobile() || document.body.dataset.tab === tab;
+function toast(msg, ms=2600){ const t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = "none", ms); }
+async function getJ(p){
+  const r = await fetch(p, {cache:"no-store"});
+  if (r.status === 401) { location.reload(); throw new Error("auth"); }
+  return r.json();
+}
+// ---------------------------------------------------------------- "updated on disk, still running old code" banner
+let updKey = "";
+function showUpdate(s){
+  const ub = $("update-banner"), cu = s.code_update;
+  if (!cu || s.ended) { ub.hidden = true; updKey = ""; return; }
+  const key = s.pid + "|" + sessKind + "|" + cu.files.join(",");
+  ub.hidden = false;
+  if (key === updKey) return;
+  updKey = key;
+  const files = cu.files.slice(0, 4).map(f => f.split("/").pop()).join(", ") + (cu.files.length > 4 ? ` +${cu.files.length - 4} more` : "");
+  const safe = (cu.disk_build && cu.disk_build !== cu.running_build
+    ? `to ${cu.disk_label} - running ${cu.running_label}` : files).replace(/[<>&]/g, "");
+  if (sessKind === "host") {
+    ub.innerHTML = `<span>SDR Pilot was updated (${safe}), but this background copy is still running the old code.</span>` +
+      `<button id="ub-restart">Restart now</button><small>stops its running flowgraphs and any reply the dashboard agent is writing</small>`;
+    $("ub-restart").onclick = () => restartHost(s.pid);
+  } else {
+    ub.innerHTML = `<span>SDR Pilot was updated (${safe}), but this chat's copy is still running the old code - start a new chat in Claude (or restart Claude) to load it.</span>`;
+  }
+}
+async function restartHost(pid){
+  if (!confirm("Restart SDR Pilot's background host to load the update? Its running flowgraphs stop.")) return;
+  const b = $("ub-restart"); if (b) { b.disabled = true; b.textContent = "Restarting…"; }
+  try { await postJ("api/host/restart", {}, pid); } catch(e) { toast(e.message); if (b) { b.disabled = false; b.textContent = "Restart now"; } return; }
+  toast("Restarting SDR Pilot…", 8000);
+  const t0 = Date.now();
+  await new Promise(r => setTimeout(r, 3000));
+  while (Date.now() - t0 < 90000) {
+    try {
+      const d = await getJ("api/sessions");
+      const list = d.sessions || [];
+      if (list.some(x => x.kind === "host" && x.alive !== false && String(x.pid) !== String(pid))) { location.reload(); return; }
+    } catch(e) {}
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  toast("SDR Pilot hasn't come back yet - open it again from the SDR Pilot shortcut", 8000);
+}
+
+async function postJ(p, body, session){
+  const r = await fetch(p + (session ? "?session=" + session : ""), {method:"POST", headers:{"Content-Type":"application/json","X-SDRPilot-Key":KEY}, body:JSON.stringify(body||{})});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  return d;
+}
+
+// ---------------------------------------------------------------- layout: tabs (phones) + sticky header height
+function setTab(t){
+  document.body.dataset.tab = t;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.go === t));
+  try { localStorage.setItem("sdrpilot.tab", t); } catch(e) {}
+  if (t === "chat"){ unread = 0; badge("b-chat", 0); setTimeout(() => scrollChat(true), 30); }
+  if (t === "graph"){ fgState.key = null; }
+  layout();
+}
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setTab(b.dataset.go));
+function layout(){ document.documentElement.style.setProperty("--toph", $("top").offsetHeight + "px"); }
+addEventListener("resize", layout);
+function badge(id, n){ const b = $(id); if (!b) return; b.textContent = n > 9 ? "9+" : n; b.style.display = n ? "block" : "none"; }
+
+// ---------------------------------------------------------------- sessions (one per AI chat, plus the agent host)
+let since = 0, chatSince = 0, acts = [], chat = [], lastImgs = "", lastJobs = "";
+let sess = "", sessKind = "chat", sessList = [], lastState = null, typedAt = 0, unread = 0;
+const q = () => sess ? "&session=" + sess : "";
+function switchSession(pid, byUser){
+  if (String(pid) === String(sess)) return;
+  sess = String(pid); since = 0; chatSince = 0; acts = []; chat = []; lastImgs = ""; lastJobs = "";
+  const s = sessList.find(x => String(x.pid) === sess); sessKind = s ? s.kind : "chat";
+  if (byUser){ $("followcb").checked = false; }
+  $("act").innerHTML = '<div class="empty">Loading…</div>'; $("chat-log").innerHTML = "";
+  $("steps").innerHTML = ""; $("outcome").innerHTML = ""; $("goal").className = "goal empty";
+  $("goal").textContent = "No task yet in this chat."; $("bar").style.width = "0"; $("ptxt").textContent = ""; $("pcount").textContent = "";
+  fgState.key = null; fgState.userPick = 0;
+  renderSessions(); renderChatChrome();
+}
+// chips the user hid: {pid: hidden_at}; a hidden chat comes back when it does something new
+let hiddenChats = {}, showIdle = false;
+try { hiddenChats = JSON.parse(localStorage.getItem("sdrpilot.hidden") || "{}"); } catch(e) {}
+function hideChat(pid){
+  hiddenChats[pid] = Date.now()/1000; try { localStorage.setItem("sdrpilot.hidden", JSON.stringify(hiddenChats)); } catch(e) {}
+  if (String(pid) === sess){ const a = sessList.find(x => x.alive && String(x.pid) !== String(pid) && !isHidden(x)); if (a) switchSession(a.pid, true); }
+  renderSessions();
+}
+const isHidden = x => hiddenChats[x.pid] && x.last_activity <= hiddenChats[x.pid] && !x.listening && !x.agent_busy;
+// an SDR Pilot copy the Claude app started that hasn't done anything yet
+const isIdle = x => x.alive && x.kind !== "host" && !x.goal && !x.listening && !x.running_jobs;
+function renderSessions(){
+  const all = sessList.filter(x => x.alive || x.goal);
+  const idle = all.filter(x => isIdle(x) && String(x.pid) !== sess);
+  const list = all.filter(x => !isHidden(x) && (showIdle || !idle.includes(x)));
+  const chips = list.slice(0, 10).map(x => {
+    const host = x.kind === "host";
+    const status = !x.alive ? "ended" : host ? (x.agent_busy ? "working" : "agent") : x.listening ? "listening" : x.finished ? "done" : isIdle(x) ? "idle" : Math.round(x.progress*100) + "%";
+    const dot = !x.alive ? "bad" : (x.agent_busy || x.listening || Date.now()/1000 - x.last_activity < 30) ? "ok" : "";
+    const close = !x.alive ? `<span class="x" title="Remove this ended chat" onclick="event.stopPropagation(); forget(${x.pid})">×</span>`
+                           : `<span class="x" title="Hide this chat (it comes back when it does something new)" onclick="event.stopPropagation(); hideChat(${x.pid})">×</span>`;
+    return `<span class="sess ${host ? "host" : ""} ${String(x.pid) === sess ? "on" : ""}" onclick="switchSession(${x.pid}, true)" title="SDR Pilot pid ${x.pid}">
+      <span class="dot ${dot}"></span><b>${esc(host ? "Dashboard agent" + (x.goal ? " · " + x.goal : "") : (x.goal || (isIdle(x) ? "Idle chat" : "AI chat")))}</b><small>${status}${x.running_jobs ? " · " + x.running_jobs + " running" : ""}</small>${close}</span>`; });
+  if (idle.length && !showIdle) chips.push(`<button class="chipbtn" title="SDR Pilot copies the Claude app started that haven't been used yet" onclick="showIdle=true; renderSessions()">${idle.length} idle</button>`);
+  else if (idle.length) chips.push(`<button class="chipbtn" onclick="showIdle=false; renderSessions()">hide idle</button>`);
+  const hiddenN = all.filter(isHidden).length;
+  if (hiddenN) chips.push(`<button class="chipbtn" title="Show the chats you hid" onclick="hiddenChats={}; try{localStorage.removeItem('sdrpilot.hidden')}catch(e){}; renderSessions()">${hiddenN} hidden</button>`);
+  $("sesslist").innerHTML = chips.join("") || '<span class="sess"><b>no chats yet</b></span>';
+  const ended = all.filter(x => !x.alive).length;
+  $("clear-ended").style.display = ended > 1 ? "" : "none";
+  $("agent-chip").style.display = sessList.some(x => x.kind === "host" && x.alive) ? "none" : "";
+}
+async function pollSessions(){
+  try{
+    const r = await getJ("api/sessions");
+    sessList = r.sessions;
+    if (!sess) switchSession(r.self, false);
+    // the copy serving this page was restarted on newer files (installer update, or the banner's restart button):
+    // reload once so the page matches it
+    const me = sessList.find(x => String(x.pid) === String(r.self));
+    if (me && me.version && !PAGE_VERSION.startsWith("__") && String(me.version) !== PAGE_VERSION){
+      let last = 0; try { last = +sessionStorage.getItem("sdrpilot.reloadedFor") || 0; } catch(e) {}
+      if (Date.now() - last > 60000){ try { sessionStorage.setItem("sdrpilot.reloadedFor", String(Date.now())); } catch(e) {} location.reload(); return; }
+    }
+    // the page is read fresh from disk, the server code isn't: say so when SDR Pilot was updated but not restarted
+    const stale = [];
+    if (PAGE_VERSION.startsWith("__")) stale.push("this dashboard's server");
+    const outdated = x => x.alive && !PAGE_VERSION.startsWith("__") && String(x.version) !== PAGE_VERSION;
+    const oldHost = sessList.find(x => x.kind === "host" && outdated(x));
+    const oldChats = sessList.filter(x => x.kind !== "host" && outdated(x)).length;
+    if (oldChats && !stale.length) stale.push(oldChats + " chat process(es)");
+    $("stale").style.display = stale.length || oldHost ? "" : "none";
+    $("stale").innerHTML = (stale.length ? `SDR Pilot was updated, but ${stale.join(" and ")} still run the old version - quit Claude from the tray icon and reopen it to load the update. ` : "")
+      + (oldHost ? `An old dashboard-agent host (pid ${oldHost.pid}) is still running: stop it in Settings (⚙) → Dashboard agent → stop the agent host.` : "");
+    if ($("followcb").checked && Date.now() - typedAt > 300000){
+      const active = sessList.filter(x => x.alive && !isHidden(x)).sort((a, b) => b.last_activity - a.last_activity)[0];
+      if (active) switchSession(active.pid, false);
+    }
+    const cur = sessList.find(x => String(x.pid) === sess); if (cur) sessKind = cur.kind;
+    renderSessions();
+  }catch(e){}
+  setTimeout(pollSessions, 2000);
+}
+async function forget(pid){
+  try {
+    let r;
+    try { r = await postJ("api/sessions/forget", pid == null ? {} : {pid}); }
+    catch(e){ toast(/no such action/.test(e.message) ? "This needs the updated SDR Pilot - restart Claude first (quit from the tray icon)." : e.message, 5000); return; }
+    sessList = sessList.filter(x => !r.removed.includes(x.pid));
+    if (r.removed.includes(Number(sess))){ const a = sessList.find(x => x.alive); if (a) switchSession(a.pid, false); }
+    renderSessions(); toast(r.removed.length ? `Removed ${r.removed.length} ended chat${r.removed.length > 1 ? "s" : ""}` : "Nothing to remove");
+  } catch(e){ toast(e.message); }
+}
+async function startAgent(){
+  const host = sessList.find(x => x.kind === "host" && x.alive);
+  if (host){ switchSession(host.pid, true); setTab("chat"); return host.pid; }
+  toast("Starting the dashboard agent…", 8000);
+  try { await postJ("api/host/start", {}); } catch(e){ toast("Couldn't start it: " + e.message); return; }
+  for (let i = 0; i < 40; i++){
+    await new Promise(r => setTimeout(r, 500));
+    const r = await getJ("api/sessions"); sessList = r.sessions;
+    const h = sessList.find(x => x.kind === "host" && x.alive);
+    if (h){ toast("Dashboard agent is running"); switchSession(h.pid, true); setTab("chat"); renderSessions(); return h.pid; }
+  }
+  toast("The agent host didn't start - see workspace/logs/host_console.log on the PC", 6000);
+}
+$("agent-chip").onclick = startAgent;
+$("chat-report").onclick = async () => {
+  try { await postJ("api/report", {}, sess || undefined); toast("Asked the AI for a status report"); setTimeout(() => scrollChat(true), 600); }
+  catch(e){ toast("Couldn't ask: " + e.message); }
+};
+
+// ---------------------------------------------------------------- state polling
+let offline = 0;
+async function poll(){
+  try{
+    const want = sess;
+    const s = await getJ("api/state?since=" + since + "&chat_since=" + chatSince + q());
+    if (want !== sess) { setTimeout(poll, 50); return; }
+    offline = 0; render(s);
+  }catch(e){ if (++offline > 1) $("h-link").innerHTML = '<span class="dot bad"></span>offline'; }
+  const agBusy = sessKind === "host" && lastState && lastState.chat_state && lastState.chat_state.agent && lastState.chat_state.agent.busy;
+  setTimeout(poll, document.hidden ? 4000 : agBusy ? 400 : 1000);
+}
+function render(s){
+  lastState = s;
+  if (s.kind) sessKind = s.kind;
+  try { showUpdate(s); } catch(e) { console.log(e); }
+  try { showActions(s); } catch(e) { console.log(e); }
+  if (visible("graph")) { try { drawSystem(s.system, s.server_time); } catch(e) { console.log(e); } }
+  const rd = s.radio || {};
+  const ok = rd.state === "connected";
+  $("h-link").innerHTML = `<span class="dot ${ok?"ok":"bad"}"></span>${ok?"connected":(rd.state||"idle")}`;
+  $("h-src").textContent = rd.mode === "sim" ? "Simulator" : rd.mode ? "SDRangel" + (rd.hw ? " · "+rd.hw : "") : "—";
+  if (rd.center_freq){ $("h-freq").textContent = mobile() ? (rd.center_freq/1e6).toFixed(3) : fmtHz(rd.center_freq); $("h-freq-l").textContent = mobile() ? "Center MHz" : "Center"; }
+  if (rd.sample_rate) $("h-rate").textContent = fmtRate(rd.sample_rate);
+  $("h-meas").textContent = rd.measured_rate ? (rd.measured_rate/1e6).toFixed(2)+" MS/s" : "—";
+  const running = (s.jobs||[]).filter(j => j.status==="running").length;
+  $("h-jobs").textContent = running + " running"; badge("b-runs", running);
+  $("h-mon").textContent = s.monitor && s.monitor.running ? `on · ${s.monitor.transmitters.length} tx` : "off";
+  // task
+  const t = s.task || {};
+  if (!t.goal){ $("goal").textContent = "No task yet in this chat."; $("goal").className = "goal empty"; badge("b-task", 0); document.title = "SDR Pilot"; }
+  if (t.goal){
+    $("goal").textContent = t.goal; $("goal").className = "goal";
+    const pct = Math.round((t.progress||0)*100);
+    $("bar").style.width = pct+"%"; $("ptxt").textContent = pct+"% complete";
+    const done = t.steps.filter(x=>x.status==="done"||x.status==="skipped").length;
+    const nsub = (function cnt(a){ return a.reduce((n,x)=>n + (x.substeps ? x.substeps.length + cnt(x.substeps) : 0), 0); })(t.steps);
+    $("pcount").textContent = `${done}/${t.steps.length} steps` + (nsub ? ` · ${nsub} sub-steps` : "");
+    $("task-time").textContent = !t.started ? "" : t.finished ? "finished in " + dur(t.finished - t.started) : "running " + dur(s.server_time - t.started);
+    const icon = {pending:"○", active:"◉", done:"✓", failed:"✕", skipped:"–", unreported:"?"};
+    $("steps").innerHTML = stepsHTML(t.steps, "", icon);
+    $("outcome").innerHTML = t.finished ? `<div class="outcome ${t.success===false?"fail":""}">${esc(t.outcome)}</div>` : "";
+    document.title = t.finished ? "✓ SDR Pilot" : `(${pct}%) SDR Pilot`;
+  }
+  // activity
+  for (const e of s.activity || []){ const i = acts.findIndex(a => a.id === e.id); if (i >= 0) acts[i] = e; else acts.push(e); }
+  acts = acts.slice(-250);
+  const runningIds = acts.filter(a => a.status === "running").map(a => a.id);
+  since = runningIds.length ? Math.min(...runningIds) - 1 : (acts.length ? acts[acts.length-1].id : since);
+  $("act-count").textContent = acts.length ? acts.length + " entries" : "";
+  if (acts.length && visible("task")){
+    $("act").innerHTML = acts.slice().reverse().slice(0, 150).map(e => {
+      const kind = e.kind === "tool" ? "TOOL" : e.kind === "note" ? "AI" : e.kind === "error" ? "ERROR" : "EVENT";
+      const st = e.status === "running" ? '<span class="spin"></span>' : e.kind==="tool" ? `<span class="st">${e.status==="ok"?"✓":"✕"} ${dur(e.duration)}</span>` : "";
+      return `<div class="ev ${e.kind} ${e.status==="error"?"err":""}"><span class="tm">${tstr(e.t)}</span><span class="k">${kind}</span><div><span class="ti">${esc(e.title)}</span>${st}${e.detail?`<div class="de">${esc(e.detail)}</div>`:""}${e.result?`<div class="re">${esc(e.result)}</div>`:""}</div></div>`;
+    }).join("");
+  }
+  // chat
+  if (s.chat_reset){ chat = []; }
+  let fresh = 0;
+  for (const m of s.chat || []){ const i = chat.findIndex(x => x.id === m.id); if (i >= 0) chat[i] = m; else { chat.push(m); if ((m.role === "ai" || m.role === "agent") && chatSince) fresh++; } }
+  if (s.chat_rev != null) chatSince = s.chat_rev;
+  if (fresh && document.body.dataset.tab !== "chat" && mobile()){ unread += fresh; badge("b-chat", unread); }
+  renderChat(s);
+  // images: the gallery reloads when new pictures arrive (or the filters change)
+  const imgs = s.images || [];
+  const ik = JSON.stringify(imgs.map(i=>i.t));
+  if (ik !== lastImgs && visible("live")){ lastImgs = ik; loadGallery(imgs); }
+  // jobs
+  const jobsArr = s.jobs || [];
+  const jk = JSON.stringify(jobsArr.map(j=>[j.job_id,j.status,j.outputs.length,j.log_tail.length,j.stopped_by||""])) + sess;
+  if (jk !== lastJobs && visible("runs")){
+    lastJobs = jk;
+    $("run-stopall").hidden = !jobsArr.some(j => j.status === "running" || j.status === "paused");
+    if ($("run-sel").options.length <= 1) loadRunList();
+    const jobs = jobsArr.slice().reverse();
+    const fq = q() ? "?" + q().slice(1) : "";
+    $("jobs").innerHTML = jobs.length ? `<table class="jobs"><thead><tr><th>Job · flowgraph</th><th>Status · controls</th><th>Outputs</th></tr></thead>` +
+      jobs.map(j => `<tr><td class="mono">${j.job_id} · ${esc(j.flowgraph)}${j.uses_live_radio?' <span class="badge">live</span>':''}</td>
+        <td><span class="badge ${j.status}">${j.status}</span> <span class="mono" style="color:var(--faint)">${dur(j.runtime_s)}</span>
+        ${jobButtons(j)}${j.stopped_by ? '<div class="jnote">stopped by you</div>' : ""}${j.status === "paused" ? '<div class="jnote">paused - the flowgraph holds until you resume</div>' : ""}</td>
+        <td class="outs">${j.outputs.map(o => /\.(wav|mp3|ogg|flac)$/i.test(o.file) ? `<div><a href="files/${j.job_id}/${encodeURI(o.file)}${fq}" target="_blank">${esc(o.file)}</a><br><audio controls preload="none" src="files/${j.job_id}/${encodeURI(o.file)}${fq}"></audio></div>` : `<a href="files/${j.job_id}/${encodeURI(o.file)}${fq}" target="_blank">${esc(o.file)} (${(o.bytes/1024).toFixed(1)} kB)</a>`).join("") || '<span style="color:var(--faint)">no outputs yet</span>'}
+        ${j.log_tail?`<details><summary>log</summary><pre class="log">${esc(j.log_tail)}</pre></details>`:""}</td></tr>`).join("") + "</table>" : '<div class="empty">No flowgraphs run yet.</div>';
+  }
+  // monitor
+  const m = s.monitor;
+  $("mon-card").style.display = m ? "" : "none";
+  if (m){
+    $("mon-note").textContent = (m.running ? "watching" : "stopped") + " · " + dur(m.watching_s);
+    $("mon-stop").style.display = m.running ? "" : "none";
+    $("mon").innerHTML = m.transmitters.length ? `<div style="overflow-x:auto"><table class="mon"><tr><th>Frequency</th><th>Count</th><th>Length</th><th>BW</th><th>Every</th><th>Last</th><th>SNR</th></tr>` +
+      m.transmitters.map(t => `<tr><td class="mono">${fmtHz(t.freq_hz)}</td><td class="mono">${t.count}</td><td class="mono">${t.typical_duration_ms} ms</td><td class="mono">${fmtHz(t.typical_bandwidth_hz)}</td><td class="mono">${t.median_interval_s!=null?t.median_interval_s+" s":"—"}</td><td class="mono">${t.last_seen}</td><td class="mono">${t.max_snr_db} dB</td></tr>`).join("") + "</table></div>"
+      : '<div class="empty">Nothing intermittent detected yet.</div>';
+  }
+}
+// nested steps: sub-lists fold away once they're all finished (click ▸ / ▾ to toggle; remembered per step path)
+const stepOpen = {};
+function stepsHTML(steps, prefix, icon){
+  return steps.map((x, i) => {
+    const path = prefix + i, kids = x.substeps || [];
+    const allDone = kids.length && kids.every(k => ["done","skipped","unreported"].includes(k.status));
+    const open = path in stepOpen ? stepOpen[path] : !allDone;
+    const kd = kids.filter(k => k.status === "done" || k.status === "skipped").length;
+    return `<li class="${x.status}${kids.length && !open ? " closed" : ""}" ${x.status === "unreported" ? 'title="The AI moved past this step without reporting it"' : ""}><span class="ic">${icon[x.status]||"○"}</span><span class="t">${esc(x.title)}${kids.length ? `<span class="tg" onclick="toggleStep('${path}', this)">${open ? "▾" : "▸"} ${kd}/${kids.length}</span>` : ""}</span>${x.note?`<span class="n">${esc(x.note)}</span>`:x.status === "unreported" ? '<span class="n">not reported by the AI</span>' : ""}${kids.length ? `<ol class="steps">${stepsHTML(kids, path + ".", icon)}</ol>` : ""}</li>`;
+  }).join("");
+}
+function toggleStep(path, el){
+  const li = el.closest("li"); const open = li.classList.contains("closed");
+  stepOpen[path] = open; li.classList.toggle("closed", !open);
+  el.textContent = (open ? "▾" : "▸") + el.textContent.slice(1);
+}
+// task history: every finished / replaced / cleared task, from all chats
+let thTimer = null;
+async function loadTaskHistory(){
+  const qs = $("th-q").value.trim();
+  try {
+    const r = await (await fetch("api/task_history?limit=80&q=" + encodeURIComponent(qs) + q())).json();
+    const icon = {pending:"○", active:"◉", done:"✓", failed:"✕", skipped:"–", unreported:"?"};
+    const tasks = r.tasks || [];
+    $("th-list").innerHTML = tasks.length ? tasks.map(t => {
+      const pct = Math.round((t.progress || 0) * 100), fail = t.success === false;
+      const how = t.how === "finished" ? (fail ? "stopped" : "finished") : t.how || "";
+      return `<details class="th-item ${fail ? "fail" : ""}"><summary><span class="g">${esc(t.goal)}</span><span class="w">${esc(t.when)} · ${esc(how)} · ${pct}%${t.who ? " · " + esc(t.who) : ""}</span></summary>
+        <div class="pbar"><i style="width:${pct}%"></i></div>${t.outcome ? `<div class="o">${md(t.outcome)}</div>` : ""}
+        <ol class="steps">${stepsHTML(t.steps || [], "h" + t.id + ":", icon)}</ol>
+        ${(t.notes||[]).length ? `<details><summary style="color:var(--dim);font-size:12px">${t.notes.length} notes</summary><ul class="notes">${t.notes.map(n => `<li>${esc(n.text)}</li>`).join("")}</ul></details>` : ""}</details>`;
+    }).join("") : `<div class="empty">${qs ? "No past tasks match." : "No finished tasks yet - they appear here when a task is finished, replaced by a new one, or cleared."}</div>`;
+  } catch(e){ $("th-list").innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+$("task-hist").onclick = () => { $("th-modal").style.display = "flex"; loadTaskHistory(); };
+$("th-q").oninput = () => { clearTimeout(thTimer); thTimer = setTimeout(loadTaskHistory, 250); };
+function zoom(src){ $("modal-img").src = src; $("img-modal").style.display = "flex"; }
+async function stopJob(jid){ try { await postJ("api/job/stop", {job_id: jid}, sess); toast("Stopping " + jid); lastJobs = ""; } catch(e){ toast(e.message); } }
+function jobButtons(j){
+  const b = [];
+  if (j.status === "running") b.push(`<button class="btn" onclick="jobCmd('pause','${j.job_id}')" title="Hold the flowgraph where it is (resume carries on)">⏸ pause</button>`);
+  if (j.status === "paused") b.push(`<button class="btn" onclick="jobCmd('resume','${j.job_id}')">▶ resume</button>`);
+  if (j.status === "running" || j.status === "paused") b.push(`<button class="btn danger" onclick="stopJob('${j.job_id}')">■ stop</button>`);
+  else if (j.status !== "stopping" && j.status !== "starting") b.push(`<button class="btn" onclick="jobCmd('run','${j.job_id}')" title="Start this flowgraph again as a new job">↻ run again</button>`);
+  return b.length ? `<span class="jbtns">${b.join("")}</span>` : "";
+}
+async function jobCmd(op, jid){
+  const word = {pause:"Pausing", resume:"Resuming", run:"Starting again:"}[op] || op;
+  try { const r = await postJ("api/job/" + op, {job_id: jid}, sess); toast(`${word} ${r.job_id || jid}` + (r.state && r.state !== "paused" ? " - " + r.state : "")); lastJobs = ""; }
+  catch(e){ toast(e.message); }
+}
+async function loadRunList(){
+  try {
+    const r = await (await fetch("api/flowgraphs" + (q() ? "?" + q().slice(1) : ""))).json();
+    const sel = $("run-sel"), cur = sel.value;
+    sel.innerHTML = '<option value="">run a flowgraph…</option>' + (r.flowgraphs||[]).filter(f => !f.draft && f.valid !== false)
+      .map(f => `<option value="${esc(f.name)}">${esc(f.name)}${f.running_job ? " (running)" : ""}${f.health && f.health !== "untested" ? " · " + esc(f.health) : ""}${f.live ? " · live" : ""}</option>`).join("");
+    sel.value = cur;
+  } catch(e){}
+}
+$("run-sel").onfocus = loadRunList;
+$("run-go").onclick = async () => {
+  const name = $("run-sel").value;
+  if (!name){ loadRunList(); toast("Pick a flowgraph first"); return; }
+  try { const r = await postJ("api/job/run", {name}, sess); toast(`Started ${name} as ${r.job_id}`); lastJobs = ""; } catch(e){ toast(e.message); }
+};
+$("run-stopall").onclick = async () => {
+  if (!confirm("Stop every running or paused flowgraph in this chat?")) return;
+  try { const r = await postJ("api/job/stop_all", {}, sess); toast(`Stopped ${r.stopped} job(s)`); lastJobs = ""; } catch(e){ toast(e.message); }
+};
+$("mon-stop").onclick = async () => { try { await postJ("api/monitor/stop", {}, sess); toast("Monitor stopped"); } catch(e){ toast(e.message); } };
+
+// ---------------------------------------------------------------- chat
+function md(src){
+  // small, safe markdown: escape everything first, then code blocks, headings, rules, quotes, lists, tables, inline
+  const blocks = [];
+  let s = esc(src).replace(/\r/g, "").replace(/```[\w+-]*\n?([\s\S]*?)```/g, (_, c) => { blocks.push(`<pre>${c.replace(/\n$/, "")}</pre>`); return `\u0000${blocks.length-1}\u0000`; });
+  const inline = t => t
+    .replace(/`([^`\n]+)`/g, (_, c) => { blocks.push(`<code>${c}</code>`); return `\u0000${blocks.length-1}\u0000`; })
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*\*([^*\n]+)\*\*\*/g, "<b><i>$1</i></b>")
+    .replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/__([^_\n]+)__/g, "<b>$1</b>")
+    .replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<i>$2</i>").replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,!?:;]|$)/g, "$1<i>$2</i>")
+    .replace(/~~([^~\n]+)~~/g, "<s>$1</s>");
+  const lines = s.split("\n"), out = [];
+  let para = [];
+  const flush = () => { if (para.length){ out.push("<p>" + para.map(inline).join("<br>") + "</p>"); para = []; } };
+  const LI = /^(\s*)([-*+•]|\d+[.)])\s+(.*)$/;
+  for (let i = 0; i < lines.length; i++){
+    const l = lines[i];
+    let m;
+    if (!l.trim()){ flush(); continue; }
+    if (/^\u0000\d+\u0000$/.test(l.trim()) && blocks[+l.trim().slice(1, -1)].startsWith("<pre")){ flush(); out.push(l.trim()); continue; }
+    if ((m = l.match(/^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/))){ flush(); const n = Math.min(m[1].length + 2, 6);
+      out.push(`<h${n} class="mdh mdh${m[1].length}">${inline(m[2])}</h${n}>`); continue; }
+    if (/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(l)){ flush(); out.push("<hr>"); continue; }
+    if (/^\s*&gt;/.test(l)){ flush(); const q = [];
+      while (i < lines.length && /^\s*&gt;/.test(lines[i])) q.push(lines[i++].replace(/^\s*&gt;\s?/, ""));
+      i--; out.push(`<blockquote>${md(q.join("\n").replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&quot;/g, '"').replace(/&amp;/g, "&"))}</blockquote>`); continue; }
+    if (/^\s*\|.*\|\s*$/.test(l) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])){ flush();
+      const cells = r => r.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+      const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(cells(lines[i++]));
+      i--;
+      out.push(`<div class="mdt"><table><tr>${head.map(c => `<th>${inline(c)}</th>`).join("")}</tr>` +
+        rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("") + `</table></div>`); continue; }
+    if ((m = l.match(LI))){ flush();
+      const ol = /\d/.test(m[2]); const items = [];
+      while (i < lines.length){
+        const mm = lines[i].match(LI);
+        if (mm && mm[1].length <= m[1].length + 1 && (/\d/.test(mm[2]) === ol || mm[1].length > m[1].length)){
+          if (mm[1].length > m[1].length + 1) break;
+          items.push(inline(mm[3])); i++;
+        } else if (mm && mm[1].length >= m[1].length + 2 && items.length){   // nested list: render it inside the last item
+          const sub = []; const base = mm[1].length;
+          while (i < lines.length && (lines[i].match(LI) || [,""])[1].length >= base && LI.test(lines[i])) sub.push(lines[i++].slice(base));
+          items[items.length - 1] += md(sub.join("\n").replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
+        } else if (lines[i].trim() && /^\s{2,}\S/.test(lines[i]) && items.length){ items[items.length - 1] += "<br>" + inline(lines[i].trim()); i++; }
+        else break;
+      }
+      i--;
+      out.push(`<${ol ? "ol" : "ul"}>${items.map(t => `<li>${t}</li>`).join("")}</${ol ? "ol" : "ul"}>`); continue; }
+    para.push(l.trim());
+  }
+  flush();
+  let html = out.join("");
+  for (let k = 0; k < 3; k++) html = html.replace(/\u0000(\d+)\u0000/g, (_, j) => blocks[+j]);
+  return html;
+}
+const chatNear = () => { const l = $("chat-log"); return l.scrollHeight - l.scrollTop - l.clientHeight < 80; };
+function scrollChat(force){ const l = $("chat-log"); if (force || chatNear()) l.scrollTop = l.scrollHeight; }
+let lastChatKey = "";
+// ---------------------------------------------------------------- "What the AI looked at": filter / sort / groups
+const GAL = {kind: "all", items: [], fallback: []};
+try { Object.assign(GAL, JSON.parse(localStorage.getItem("sdrpilot.gal") || "{}"), {items: [], fallback: []}); } catch(e) {}
+const KIND_LABEL = {spectrum: "spectrum", bursts: "bursts", sweep: "sweep", spectrogram: "spectrogram", signal: "signal analysis", plot: "plots / data", output: "outputs"};
+function galSave(){ try { localStorage.setItem("sdrpilot.gal", JSON.stringify({kind: GAL.kind, sort: $("gal-sort").value, scope: $("gal-scope").value})); } catch(e) {} }
+async function loadGallery(fallback){
+  if (fallback) GAL.fallback = fallback;
+  const p = new URLSearchParams({kind: GAL.kind, sort: $("gal-sort").value, q: $("gal-q").value.trim(), limit: "90"});
+  if ($("gal-fmin").value) p.set("fmin", $("gal-fmin").value);
+  if ($("gal-fmax").value) p.set("fmax", $("gal-fmax").value);
+  if ($("gal-scope").value === "this" && sess) p.set("pid", sess);
+  let d = null;
+  try { d = await getJ("api/gallery?" + p.toString()); } catch(e) {}
+  if (!d || (!d.total && !Object.keys(d.facets || {}).length)) return galFallback();
+  GAL.items = d.items || [];
+  const kinds = Object.entries(d.facets || {}).sort((a, b) => b[1] - a[1]);
+  $("gal-kinds").innerHTML = `<button data-k="all" class="${GAL.kind === "all" ? "on" : ""}">all</button>` +
+    kinds.map(([k, n]) => `<button data-k="${esc(k)}" class="${GAL.kind === k ? "on" : ""}">${esc(KIND_LABEL[k] || k)} <span style="color:var(--faint)">${n}</span></button>`).join("");
+  $("img-count").textContent = d.total ? `${d.total} shown` : "";
+  const ago = t => { const s2 = Date.now()/1000 - t; return s2 < 3600 ? Math.round(s2/60) + " min ago" : s2 < 86400 ? Math.round(s2/3600) + " h ago" : Math.round(s2/86400) + " d ago"; };
+  $("gal").innerHTML = GAL.items.length ? GAL.items.map((g, i) => {
+    const im = g.images[0], n = g.images.length;
+    const f = g.center_hz ? (g.center_hz/1e6).toFixed(3) + " MHz" : "";
+    return `<figure data-gi="${i}"><img loading="lazy" src="api/gallery/img?f=${encodeURIComponent(im.file)}" alt="">${n > 1 ? `<span class="gcount">${n} images</span>` : ""}` +
+      `<figcaption>${esc(g.caption || im.caption)}<span class="gmeta">${esc(g.kinds.map(k => KIND_LABEL[k] || k).join(" + "))}${f ? " · " + f : ""} · ${ago(g.t)}</span></figcaption></figure>`; }).join("")
+    : `<div class="empty">Nothing matches these filters.</div>`;
+}
+function galFallback(){   // before any picture was indexed: this chat's recent ones
+  const imgs = GAL.fallback || [];
+  $("gal-kinds").innerHTML = "";
+  $("img-count").textContent = imgs.length ? imgs.length + " recent" : "";
+  if (imgs.length) $("gal").innerHTML = imgs.map((im,i)=>({im,i})).reverse().map(({im,i}) =>
+    `<figure onclick="zoom('api/image/${i}?t=${im.t}${q()}')"><img loading="lazy" src="api/image/${i}?t=${im.t}${q()}" alt=""><figcaption>${esc(im.caption)}</figcaption></figure>`).join("");
+}
+$("gal").addEventListener("click", e => {
+  const f = e.target.closest("figure[data-gi]"); if (!f) return;
+  const g = GAL.items[+f.dataset.gi]; if (!g) return;
+  if (g.images.length === 1) return zoom("api/gallery/img?f=" + encodeURIComponent(g.images[0].file));
+  $("gal-modal-body").innerHTML = g.images.map(im => `<div><img src="api/gallery/img?f=${encodeURIComponent(im.file)}" alt=""><div class="cap">${esc(im.caption)}</div></div>`).join("");
+  $("gal-modal").style.display = "flex";
+});
+$("gal-kinds").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (!b) return; GAL.kind = b.dataset.k; galSave(); loadGallery(); });
+let galT = 0;
+["gal-q", "gal-fmin", "gal-fmax"].forEach(id => $(id).addEventListener("input", () => { clearTimeout(galT); galT = setTimeout(() => loadGallery(), 300); }));
+["gal-sort", "gal-scope"].forEach(id => $(id).addEventListener("change", () => { galSave(); loadGallery(); }));
+if (GAL.sort) $("gal-sort").value = GAL.sort;
+if (GAL.scope) $("gal-scope").value = GAL.scope;
+
+// ---------------------------------------------------------------- the AI asks the user to do something
+function actionCard(m){
+  const done = !!m.answered;
+  return `<div class="acard ${done ? "done" : ""}" data-aid="${m.action_id}"><div class="ah">${done ? "You answered: " + esc(m.answered) : "The AI asks you to"}</div>` +
+    `<div class="ai">${esc(m.text)}</div>${m.why ? `<div class="aw">Why: ${esc(m.why)}</div>` : ""}${m.expect ? `<div class="ae">Then: ${esc(m.expect)}</div>` : ""}` +
+    (done ? (m.answer_note ? `<div class="ae">Note: ${esc(m.answer_note)}</div>` : "") :
+      `<div class="ab"><button data-ans="done">Done</button>${(lastActOpts[m.action_id] || []).map(o => `<button data-ans="${esc(o)}">${esc(o)}</button>`).join("")}` +
+      `<button class="no" data-ans="can't do it">Can't do it</button><input placeholder="note for the AI (optional)"></div>`) + `</div>`;
+}
+const lastActOpts = {};
+async function answerAction(aid, ans, note){
+  try { await postJ("api/user_action", {id: aid, answer: ans, note: note || ""}, sess); toast("Sent to the AI"); }
+  catch(e){ toast(e.message); }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-ans]"); if (!b) return;
+  const box = b.closest("[data-aid]"); if (!box) return;
+  const inp = box.querySelector("input");
+  answerAction(+box.dataset.aid, b.dataset.ans, inp ? inp.value : "");
+});
+function showActions(s){
+  const ab = $("action-banner"), list = s.user_actions || [];
+  list.forEach(a => { lastActOpts[a.id] = a.options || []; });
+  if (!list.length || s.ended){ ab.hidden = true; ab.dataset.k = ""; return; }
+  const a = list[list.length - 1], k = String(a.id);
+  ab.hidden = false;
+  if (ab.dataset.k === k) return;
+  ab.dataset.k = k;
+  ab.innerHTML = `<span><b>The AI asks:</b> ${esc(a.instruction)}</span><span data-aid="${a.id}" style="display:flex;gap:6px">` +
+    `<button data-ans="done">Done</button>${(a.options || []).map(o => `<button data-ans="${esc(o)}">${esc(o)}</button>`).join("")}<button class="no" data-ans="can't do it">Can't do it</button></span>`;
+}
+
+// ---------------------------------------------------------------- tool calls in the chat: cards you can open
+const openTools = new Set(), toolDet = new Map();
+const toolCards = () => ((typeof LAY !== "undefined" && LAY && LAY.toolStyle) || "cards") === "cards";
+function toolCard(m){
+  const open = openTools.has(m.id), d = toolDet.get(m.id);
+  const st = m.status || "ok";
+  const icon = st === "running" ? '<span class="spin"></span>' : st === "error" ? "✕" : "✓";
+  const title = m.title || String(m.text || "").split("(")[0];
+  const res = st === "running" ? "running…" : (m.result || (st === "ok" ? "done" : ""));
+  let det = "";
+  if (open){
+    if (!d) det = `<div class="det"><span class="nt">Loading…</span></div>`;
+    else if (d.error) det = `<div class="det"><span class="nt">${esc(d.error)}</span><div class="dh"><span>Call</span></div><pre>${esc(m.text || "")}</pre></div>`;
+    else det = `<div class="det"><div class="dh"><span>Sent · ${esc(d.tool || m.tool || "")}</span><button data-copy="args">copy</button></div><pre>${esc(d.args || "{}")}</pre>` +
+      `<div class="dh"><span>${st === "running" ? "Result (still running)" : "Result"}${d.images ? ` · ${d.images} image${d.images > 1 ? "s" : ""}` : ""}</span>${d.result ? '<button data-copy="result">copy</button>' : ""}</div>` +
+      `<pre>${esc(d.result || (st === "running" ? "…" : "(no text)"))}</pre></div>`;
+  }
+  return `<div class="tcard ${st}${open ? " open" : ""}" data-mid="${m.id}"><div class="th"><span class="ic">${icon}</span><span class="tt">${esc(title)}</span>` +
+    `<span class="hn">${esc(m.hint || "")}</span><span class="car">▸</span></div>` +
+    (res && !open ? `<div class="rs">${esc(res)}</div>` : "") + det + `</div>`;
+}
+const prettyJSON = t => { const s = String(t || "").trim(); if (!/^[\[{]/.test(s) || s.length > 200000) return t;
+  try { return JSON.stringify(JSON.parse(s), null, 2); } catch(e) { return t; } };
+async function loadToolDetail(mid, rev){
+  try { const d = await getJ("api/chat/detail?id=" + mid + q()); d.rev = rev; if (d.result) d.result = prettyJSON(d.result); toolDet.set(mid, d); }
+  catch(e){ toolDet.set(mid, {error: e.message, rev}); }
+  lastChatKey = ""; if (lastState) renderChat(lastState);
+}
+$("chat-log").addEventListener("click", e => {
+  const card = e.target.closest(".tcard"); if (!card) return;
+  const mid = +card.dataset.mid;
+  const cp = e.target.closest("[data-copy]");
+  if (cp){ const d = toolDet.get(mid) || {}; navigator.clipboard && navigator.clipboard.writeText(d[cp.dataset.copy] || "").then(() => toast("Copied")).catch(() => {}); return; }
+  if (!e.target.closest(".th, .rs")) return;   // clicks inside the opened text select it, they don't close the card
+  const near = chatNear();
+  if (openTools.has(mid)) openTools.delete(mid);
+  else { openTools.add(mid); const m = chat.find(x => x.id === mid); if (!toolDet.has(mid) || toolDet.get(mid).rev !== (m && m.rev)) loadToolDetail(mid, m && m.rev); }
+  lastChatKey = ""; if (lastState) renderChat(lastState); if (near) scrollChat(true);
+});
+function renderChat(s){
+  renderChatChrome(s);
+  const cs = (s && s.chat_state) || {};
+  const ag = cs.agent || {};
+  const busy = sessKind === "host" && ag.busy;
+  if (toolCards()) for (const m of chat){ if (m.role === "tool" && openTools.has(m.id)){ const d = toolDet.get(m.id); if (d && d.rev !== m.rev && !d.loading){ d.loading = true; loadToolDetail(m.id, m.rev); } } }
+  const key = JSON.stringify(chat.map(m => [m.id, m.rev])) + busy + (toolCards() ? "c" : "l");
+  if (key === lastChatKey) return;
+  lastChatKey = key;
+  const near = chatNear();
+  const icons = {queued:"⏳ waiting", delivered:"✓ delivered", error:"✕", cancelled:"cancelled"};
+  const msgs = chat.filter(m => !m.hidden && m.role !== "status");
+  let html = msgs.map(m => {
+    if (m.role === "user") return `<div class="msg user">${esc(m.text)}<span class="meta">${tstr(m.t)} · ${icons[m.status] || ""}</span></div>`;
+    if (m.role === "action") return actionCard(m);
+    if (m.role === "tool" && toolCards()) return toolCard(m);
+    if (m.role === "tool") return `<div class="msg tool ${m.status||""}">${m.status === "running" ? '<span class="spin"></span> ' : ""}${esc(m.text)}${m.result ? `<span class="r">${esc(m.result)}</span>` : ""}</div>`;
+    if (m.role === "system") return `<div class="msg system">${esc(m.text)}</div>`;
+    return `<div class="msg ${m.role}${m.streaming ? " streaming" : ""}"><span class="who">${m.role === "agent" ? esc(ag.model || "agent") : "AI chat"}</span>${md(m.text)}</div>`;
+  }).join("");
+  if (busy && !ag.infer && !msgs.some(m => m.streaming)) html += '<div class="typing"><i></i><i></i><i></i></div>';
+  if (!msgs.length) html = `<div class="msg system">${sessKind === "host" ? "Ask the dashboard agent anything about the radio - it can tune, look at the band, build and run GNU Radio flowgraphs." : "Type here to message this AI chat. You can steer it while it works, or ask it (in the chat) to “listen to the dashboard” and then talk to it only from here."}</div>`;
+  $("chat-log").innerHTML = html;
+  scrollChat(near);
+}
+// live inference progress of the dashboard agent (prompt processing -> thinking -> writing)
+let inferState = null, inferAt = 0;
+const kfmt = n => n == null ? "?" : n >= 10000 ? (n/1000).toFixed(1) + "k" : String(n);
+function renderInfer(){
+  const box = $("infer"), inf = inferState;
+  if (!inf || sessKind !== "host"){ box.hidden = true; return; }
+  box.hidden = false;
+  const el = (inf.elapsed || 0) + (Date.now() - inferAt) / 1000;
+  const bar = $("inf-bar"), fill = $("inf-fill");
+  let ph, nums = "", frac = null;
+  if (inf.phase === "prompt"){
+    ph = inf.local ? "Reading prompt" : "Waiting for " + (inf.model || "the model");
+    nums = `${kfmt(inf.new_tokens)} new · ${kfmt(inf.cached_tokens)} cached of ${kfmt(inf.prompt_tokens)} tokens` + (inf.exact ? "" : inf.expected_s ? ` · ~${inf.expected_s < 10 ? inf.expected_s.toFixed(1) : Math.round(inf.expected_s)} s expected` : "");
+    if (inf.exact && inf.progress != null) frac = inf.progress;
+    else if (inf.expected_s) frac = Math.min(0.97, el / inf.expected_s);
+  } else {
+    ph = inf.phase === "thinking" ? "Thinking" : inf.phase === "tool" ? "Writing tool call" + (inf.tool ? " · " + inf.tool : "") : "Writing";
+    nums = `${inf.gen_tokens || 0} tokens` + (inf.tps ? ` · ${inf.tps} tok/s` : "");
+    frac = 1;
+  }
+  $("inf-ph").textContent = ph; $("inf-nums").textContent = nums;
+  $("inf-tm").textContent = (inf.phase === "prompt" && frac != null ? Math.round(frac * 100) + "% · " : "") + el.toFixed(1) + " s";
+  bar.classList.toggle("indet", frac == null);
+  if (frac != null) fill.style.width = Math.round(frac * 100) + "%";
+}
+setInterval(() => { if (inferState) renderInfer(); }, 200);
+function renderChatChrome(s){
+  s = s || lastState || {};
+  const cs = s.chat_state || {};
+  const ag = cs.agent || {};
+  const host = sessKind === "host";
+  const inf = host && ag.busy ? ag.infer : null;
+  if (JSON.stringify(inf) !== JSON.stringify(inferState)){ inferState = inf; inferAt = Date.now(); }
+  renderInfer();
+  $("chat-stop").hidden = !(host && (ag.busy || ag.queued));
+  $("chat-new").hidden = !host;
+  const ended = s.ended;
+  $("chat-in").disabled = $("chat-send").disabled = !!ended;
+  if (host){
+    $("chat-mode").textContent = ag.model ? `${ag.label || ""} · ${ag.model}` : "";
+    const tok = ag.usage ? Math.round((ag.usage.input + ag.usage.output + ag.usage.cache_read)/1000) : 0;
+    $("chat-banner").innerHTML = ag.configured
+      ? `<span>Dashboard agent on <b>${esc(ag.model)}</b>${tok ? ` · ${tok}k tokens so far` : ""}. It runs on the PC and uses SDR Pilot's tools directly.${ag.last_call ? `<br><span class="lastcall">last step: ${ag.last_call.prompt_s != null ? `prompt ${kfmt(ag.last_call.new_tokens)} new tokens in ${ag.last_call.prompt_s} s${ag.last_call.prompt_tps ? ` (${ag.last_call.prompt_tps} tok/s)` : ""} · ` : ""}reply ${ag.last_call.gen_tokens} tokens${ag.last_call.gen_tps ? ` at ${ag.last_call.gen_tps} tok/s` : ""} · context ${kfmt(ag.last_call.prompt_tokens)}${ag.budget ? " / " + kfmt(ag.budget) : ""}</span>` : ""}</span><button class="btn" onclick="openSettings('agent')">change model</button>`
+      : `<span><b>Pick a model first.</b> Claude, OpenAI, Gemini, OpenRouter, or a local model in LM Studio / Ollama.</span><button class="btn pri" onclick="openSettings('agent')">set up</button>`;
+    $("chat-in").placeholder = "Message the dashboard agent…";
+  } else {
+    const listening = cs.listening;
+    $("chat-mode").textContent = listening ? "AI is listening" : "";
+    $("chat-banner").innerHTML = ended ? "<span>This chat has ended.</span>"
+      : `<span><span class="dot ${listening ? "ok" : "warn"}"></span>${listening ? "<b>The AI is listening</b> - messages go straight to it." : "Messages reach this AI chat at its next SDR Pilot tool call (or right away while it listens)."}</span>
+         <button class="btn" onclick="startAgent()">talk to the dashboard agent</button>`;
+    $("chat-in").placeholder = "Message this AI chat…";
+  }
+}
+$("chat-in").addEventListener("input", e => { const t = e.target; t.style.height = "auto"; t.style.height = Math.min(140, t.scrollHeight) + "px"; typedAt = Date.now(); });
+$("chat-in").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !matchMedia("(pointer:coarse)").matches){ e.preventDefault(); $("chat-form").requestSubmit(); }
+});
+$("chat-form").onsubmit = async e => {
+  e.preventDefault();
+  const text = $("chat-in").value.trim(); if (!text) return;
+  $("chat-send").disabled = true; typedAt = Date.now(); $("followcb").checked = false;
+  try {
+    await postJ("api/chat", {text}, sess);
+    $("chat-in").value = ""; $("chat-in").style.height = "auto";
+    setTimeout(() => scrollChat(true), 400);
+  } catch(err){ toast("Not sent: " + err.message, 4000); }
+  $("chat-send").disabled = false;
+};
+$("chat-stop").onclick = () => postJ("api/agent", {action:"stop"}, sess).catch(e => toast(e.message));
+$("chat-new").onclick = () => { if (confirm("Start a new conversation with the dashboard agent?")) postJ("api/agent", {action:"reset"}, sess).then(() => { chat = []; lastChatKey = ""; }).catch(e => toast(e.message)); };
+
+// ---------------------------------------------------------------- settings: remote access, agent, MCP
+function closeSettings(){ $("set-modal").style.display = "none"; }
+$("set-modal").onclick = closeSettings;
+$("settings-btn").onclick = () => openSettings();
+async function copy(text){ try { await navigator.clipboard.writeText(text); toast("Copied"); } catch(e){ prompt("Copy this:", text); } }
+async function openSettings(section){
+  $("set-modal").style.display = "flex";
+  renderAgentSettings(); renderCtxSettings(); renderStorage(); renderUpdates();
+  try{
+    const r = await getJ("api/remote");
+    const names = {tailscale_https:"Tailscale (HTTPS, recommended)", tailscale_direct:"Tailscale IP", tailscale_name:"Tailscale name"};
+    const links = Object.entries(r.phone_links || {});
+    let h = links.length ? `<p>Open one of these on your phone or iPad (Tailscale must be on there too). The link carries the access key once and is then remembered; treat it like a password. On iPhone, Share → <i>Add to Home Screen</i> makes it an app.</p>` +
+      links.map(([k, u]) => `<div class="link"><div style="flex:1;min-width:0"><small>${esc(names[k] || k)}</small><code>${esc(u.replace(/key=[^&]+/, "key=••••••"))}</code></div><button class="btn" onclick='copy(${JSON.stringify(u)})'>copy</button></div>`).join("")
+      : `<p>${esc((r.notes || []).join(" ") || "Not reachable from other devices yet.")}</p>`;
+    if (!links.length) h += `<p>On the PC, double-click <code>remote_access.bat</code> in the SDR Pilot folder (or run <code>python remote_setup.py serve</code>). It uses <code>tailscale serve</code> to put this dashboard on your tailnet over HTTPS.</p>`;
+    h += `<p style="color:var(--faint)">You're viewing from: ${esc(r.viewer)} · dashboard_bind = ${esc(r.bind)}${r.tailscale && r.tailscale.dns_name ? " · " + esc(r.tailscale.dns_name) : ""}</p>`;
+    $("remote-body").innerHTML = h; $("remote-body").className = "";
+    const mh = r.mcp_http;
+    $("mcp-body").innerHTML = mh ? `<p>The SDR Pilot host serves MCP over HTTP, so any MCP-capable AI app can drive the radio, on this PC or across your tailnet: Claude Code, LM Studio, Cursor, Codex, Gemini CLI…</p>
+      <div class="link"><div style="flex:1;min-width:0"><small>On this PC</small><code>${esc(mh.local_url)}</code></div><button class="btn" onclick='copy(${JSON.stringify(mh.local_url)})'>copy</button></div>
+      ${mh.tailscale_url ? `<div class="link"><div style="flex:1;min-width:0"><small>Over Tailscale (key in the address)</small><code>${esc(mh.tailscale_url.replace(/\/k\/[^/]+/, "/k/••••••"))}</code></div><button class="btn" onclick='copy(${JSON.stringify(mh.tailscale_url)})'>copy</button></div>` : `<p>For other devices run <code>python remote_setup.py serve-mcp</code> on the PC.</p>`}
+      <p>Claude Code: <code>claude mcp add --transport http sdr-pilot &lt;url&gt;</code>. LM Studio: add <code>{"mcpServers":{"sdr-pilot":{"url":"&lt;url&gt;"}}}</code> to mcp.json.</p>`
+      : `<p>Every AI app that speaks MCP can already start SDR Pilot itself (stdio): point it at <code>run_server.py</code> with radioconda's Python - see the README. To reach it from other devices, start the dashboard agent (it also serves MCP over HTTP on port 8770).</p><button class="btn" onclick="startAgent()">start the SDR Pilot host</button>`;
+  }catch(e){ $("remote-body").textContent = "Couldn't load: " + e.message; }
+  if (section) setTimeout(() => $("set-" + section).scrollIntoView({behavior:"smooth"}), 60);
+}
+function hostSession(){ return sessList.find(x => x.kind === "host" && x.alive); }
+// ---------------------------------------------------------------- newer release available (GitHub Releases)
+let relState = null, relHidden = "";
+try { relHidden = localStorage.getItem("sdrpilot.relLater") || ""; } catch(e) {}
+async function relFetch(force){
+  const h = hostSession(); if (!h) return null;
+  try { relState = force ? await postJ("api/update/check", {}, h.pid) : await getJ("api/update?session=" + h.pid); } catch(e) { return null; }
+  showRelease(); return relState;
+}
+function showRelease(){
+  const b = $("rel-banner"), r = relState || {}, a = r.available;
+  if (r.phase === "downloading" || r.phase === "verifying" || r.phase === "installing"){
+    b.hidden = false;
+    b.innerHTML = r.phase === "installing" ? `<span>Installing the update - SDR Pilot restarts in a moment and this page reloads by itself.</span>`
+      : `<span>${r.phase === "verifying" ? "Checking the download…" : `Downloading the update… ${Math.round((r.progress || 0) * 100)}%`}</span>`;
+    return;
+  }
+  if (r.phase === "failed"){ b.hidden = false; b.innerHTML = `<span>The update couldn't be installed: ${esc(r.error || "")}</span><button class="ghost" onclick="relLater()">dismiss</button>`; return; }
+  if (!a || relHidden === a.build){ b.hidden = true; return; }
+  b.hidden = false;
+  b.innerHTML = `<span><b>SDR Pilot ${esc(a.label)}</b> is available (you have ${esc(r.current_label)}).</span>` +
+    (r.can_install ? `<button id="rel-go">Download &amp; install</button>` : "") +
+    (a.page ? `<a href="${esc(a.page)}" target="_blank" rel="noopener" style="color:#cff5e4">what's new ↗</a>` : "") +
+    `<button class="ghost" onclick="relLater()">later</button><small>keeps your settings, captures, flowgraphs and chats; stops running flowgraphs while it installs</small>`;
+  const go = $("rel-go"); if (go) go.onclick = relInstall;
+}
+function relLater(){ const a = relState && relState.available; relHidden = a ? a.build : ""; try { localStorage.setItem("sdrpilot.relLater", relHidden); } catch(e) {} if (relState && relState.phase === "failed") relState.phase = "idle"; showRelease(); }
+async function relInstall(){
+  const h = hostSession(); if (!h || !relState || !relState.available) return;
+  if (!confirm(`Install SDR Pilot ${relState.available.label}? SDR Pilot stops for a minute while it installs (running flowgraphs stop), then starts again.`)) return;
+  try { relState = await postJ("api/update/install", {}, h.pid); showRelease(); } catch(e) { toast(e.message, 6000); return; }
+  const t0 = Date.now();
+  while (Date.now() - t0 < 180000){   // follow the download; after that the host stops and the page reloads itself
+    await new Promise(r => setTimeout(r, 1200));
+    try { relState = await getJ("api/update?session=" + h.pid); showRelease(); if (relState.phase === "failed") return; } catch(e) {}
+  }
+}
+async function renderUpdates(){
+  const el = $("upd-body"), h = hostSession();
+  if (!h){ el.innerHTML = `<p>Updates are handled by the SDR Pilot background host - start it to check for updates.</p>`; return; }
+  const r = await relFetch(false) || {};
+  const a = r.available;
+  el.innerHTML = `<p>Installed: <b>${esc(r.current_label || PAGE_VERSION)}</b>${r.checked ? ` · last checked ${new Date(r.checked * 1000).toLocaleString()}` : ""}</p>
+    ${r.enabled ? (a ? `<p>Newer: <b>${esc(a.label)}</b> ${r.can_install ? `<button class="btn" onclick="relHidden='';relInstall()">download &amp; install</button>` : `- <a href="${esc(a.page || "#")}" target="_blank" rel="noopener">download it</a>`}</p>` : `<p>${r.error ? "Couldn't check: " + esc(r.error) : "You have the newest release."}</p>`) : `<p>Update checks are off - no release source is set.</p>`}
+    <label>Release source (GitHub owner/repo)<input id="upd-repo" placeholder="e.g. yourname/sdr-pilot" value="${esc(r.repo || "")}"></label>
+    <button class="btn" onclick="saveUpdRepo()">save &amp; check now</button>
+    <p style="color:var(--faint)">SDR Pilot looks for a newer <code>SDR-Pilot-Setup-&lt;build&gt;.exe</code> on that repository's Releases page every few hours. Nothing installs without your click; downloads are checked against their published SHA-256 before they run.</p>`;
+}
+async function saveUpdRepo(){
+  const h = hostSession(); if (!h) return;
+  try { relState = await postJ("api/update/repo", {repo: $("upd-repo").value}, h.pid); showRelease(); renderUpdates(); toast("Saved"); } catch(e) { toast(e.message, 5000); }
+}
+setInterval(() => { if (!document.hidden) relFetch(false); }, 120000);
+setTimeout(() => relFetch(false), 4000);
+async function renderStorage(){
+  let s; try { s = await getJ("api/storage"); } catch(e){ $("storage-body").textContent = e.message; return; }
+  $("storage-body").innerHTML = `<p>Where SDR Pilot keeps things on the PC. Changes apply after a restart (quit and reopen Claude, run start_host.bat); files already saved stay where they are.</p>
+    <div class="row"><label>Workspace</label><input type="text" id="st-ws" value="${esc(s.workspace)}" spellcheck="false" autocapitalize="off"></div>
+    <p style="color:var(--faint);margin-top:0">chats (dashboard agent conversation), sessions, settings, logs and saved tool results</p>
+    <div class="row"><label>Data folder</label><input type="text" id="st-data" value="${esc(s.data_dir || "")}" placeholder="inside the workspace (${esc(s.data_root)})" spellcheck="false" autocapitalize="off"></div>
+    <p style="color:var(--faint);margin-top:0">IQ captures, flowgraphs, job outputs, images and saved recipes - can be a bigger drive</p>
+    <div class="row"><label></label><button class="btn pri" id="st-save">save</button><span id="st-msg" style="font-size:12px;color:var(--dim)"></span></div>`;
+  $("st-save").onclick = async () => {
+    try { const r = await postJ("api/storage", {workspace: $("st-ws").value, data_dir: $("st-data").value}); $("st-msg").innerHTML = `<span class="ok-t">${esc(r.note)}</span>`; }
+    catch(e){ $("st-msg").innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
+  };
+}
+async function renderCtxSettings(){
+  let p; try { p = await getJ("api/context_prefs"); } catch(e){ $("ctx-body").textContent = e.message; return; }
+  $("ctx-body").innerHTML = `<p>Applies to every AI using SDR Pilot (Claude chats, LM Studio, the dashboard agent). Results are always sent as compact JSON, which is the same data in fewer tokens.</p>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="cx-on" ${p.shorten_results ? "checked" : ""}> shorten tool results longer than</label><input type="number" id="cx-max" min="2000" step="1000" value="${p.result_max_chars}" style="max-width:110px"> characters</div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="cx-vision" ${p.vision_hints !== false ? "checked" : ""}> suggest pictures to the AI where they help (identifying signals, unclear analyses, decodes that found nothing)</label></div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="cx-clean" ${p.cleanup !== false ? "checked" : ""}> clean up what ended chats leave behind (saved tool results, temp files) and analysis images older than</label><input type="number" id="cx-imgdays" min="0" max="3650" value="${p.image_days ?? 14}" style="max-width:70px"> days (0 = keep images). Captures, flowgraphs and job outputs are never deleted.</div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="cx-task" ${p.task_reminders !== false ? "checked" : ""}> remind the AI to update the task card after</label><input type="number" id="cx-every" min="1" max="50" value="${p.task_reminder_every || 12}" style="max-width:70px"> tool calls without an update</div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="cx-reply" ${p.task_after_reply !== false ? "checked" : ""}> and after each written reply to you</label></div>
+    <p style="color:var(--faint)">A shortened result keeps its structure (first items of long lists, start of long text) and is saved in full; the AI can read any part of the original with <code>get_full_result</code>. Turn this off to always send everything.</p>`;
+  const save = async () => { try { await postJ("api/context_prefs", {shorten_results: $("cx-on").checked, result_max_chars: $("cx-max").value,
+    task_reminders: $("cx-task").checked, task_reminder_every: $("cx-every").value, task_after_reply: $("cx-reply").checked, vision_hints: $("cx-vision").checked, cleanup: $("cx-clean").checked, image_days: $("cx-imgdays").value}); toast("Saved"); } catch(e){ toast(e.message); } };
+  $("cx-on").onchange = save; $("cx-max").onchange = save; $("cx-task").onchange = save; $("cx-every").onchange = save; $("cx-reply").onchange = save; $("cx-vision").onchange = save; $("cx-clean").onchange = save; $("cx-imgdays").onchange = save;
+}
+async function renderAgentSettings(){
+  const host = hostSession();
+  if (!host){
+    $("agent-body").innerHTML = `<p>A chat box on this dashboard that works without any AI chat open, from your phone too. It runs on the PC in the SDR Pilot host and works with any model: Claude, OpenAI, Gemini, OpenRouter, or a local LM Studio / Ollama model.</p><button class="btn pri" onclick="startAgent().then(renderAgentSettings)">start the dashboard agent</button>`;
+    return;
+  }
+  let st;
+  try { st = (await getJ("api/state?since=999999999&chat_since=999999999&session=" + host.pid)).chat_state.agent || {}; } catch(e){ $("agent-body").textContent = e.message; return; }
+  const presets = st.presets || {};
+  const p = presets[st.preset] || {};
+  $("agent-body").innerHTML = `
+    <div class="row"><label>Provider</label><select id="ag-preset">${Object.entries(presets).map(([k, v]) => `<option value="${k}" ${k === st.preset ? "selected" : ""}>${esc(v.label)}</option>`).join("")}</select></div>
+    <div class="row"><label>API address</label><input type="text" id="ag-base" value="${esc(st.base_url)}" placeholder="https://…/v1" autocapitalize="off" spellcheck="false"></div>
+    <div class="row"><label>API key</label><input type="password" id="ag-key" placeholder="${st.key_hint ? "saved (" + esc(st.key_hint) + ") - leave empty to keep" : (p.needs_key ? "paste your key" : "not needed for local models")}" autocomplete="off"></div>
+    <div class="row"><label>Model</label><input type="text" id="ag-model" list="ag-models" value="${esc(st.model)}" placeholder="model id" autocapitalize="off" spellcheck="false"><datalist id="ag-models">${(p.models||[]).map(m => `<option value="${esc(m)}">`).join("")}</datalist><button class="btn" id="ag-list">list models</button></div>
+    <div class="row" id="ag-pick-row" hidden><label></label><select id="ag-pick" aria-label="available models"></select></div>
+    <div class="row"><label>Images</label><select id="ag-vision">${[["auto", "auto" + (st.vision_detected === true ? " (vision model detected - sending images)" : st.vision_detected === false ? " (no vision detected - not sending)" : st.vision ? " (sending images)" : " (not sending images)")], ["on", "always send tool images to the model"], ["off", "never send images"]].map(([v, l]) => `<option value="${v}" ${(st.vision_mode || "auto") === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+    <div class="row"><label>Context size</label><input type="number" id="ag-ctx" min="0" step="1024" value="${(st.settings||{}).context_tokens || ""}" placeholder="auto"><span id="ag-ctxinfo" style="font-size:12px;color:var(--dim)"></span></div>
+    <div class="row"><label>Tool descriptions</label><select id="ag-tools">${[["auto","auto (short when the context is under 64k)"],["full","full"],["short","short + tool_help (saves ~4k tokens)"]].map(([v,l]) => `<option value="${v}" ${((st.settings||{}).tool_detail||"auto") === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-compact" ${(st.settings||{}).compact_history !== false ? "checked" : ""}> when the context is ~85% full, compact older tool results together with moving out old turns - in one go, so the model's prompt cache keeps working (full copies are kept; the AI can reread them)</label></div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-nudge" ${(st.settings||{}).nudge !== false ? "checked" : ""}> nudge the model when it says what it'll do but doesn't do it</label></div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-recover" ${(st.settings||{}).auto_recover !== false ? "checked" : ""}> when the context fills up or a reply is cut off (finish_reason "length"), shrink the prompt and carry on</label></div>
+    <div class="row"><label>Reply length</label><input type="number" id="ag-maxout" min="1024" max="65536" step="1024" value="${(st.settings||{}).max_reply_tokens || 16384}" style="max-width:120px"><span style="font-size:12px;color:var(--dim)">tokens per reply - raised automatically (up to what the context allows) when a long reply such as a big flowgraph needs it</span></div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-stream" ${(st.settings||{}).stream !== false ? "checked" : ""}> stream replies and show live progress (prompt processing, tokens/s)</label></div>
+    <div class="row"><label></label><span style="font-size:12px;color:var(--dim)">Last prompt: ${st.context_tokens ? st.context_tokens.toLocaleString() + " tokens" : "–"}${st.compacted ? ` · ${st.compacted} result(s) compacted so far` : ""}${st.usage && st.usage.turns ? ` · ${st.usage.turns} model calls, ${(st.usage.input||0).toLocaleString()} input tokens total` : ""}</span></div>
+    <div class="row"><label></label><button class="btn pri" id="ag-save">save</button><span id="ag-msg" style="font-size:12px;color:var(--dim)">${st.configured ? '<span class="ok-t">✓ ready</span>' : '<span class="warn-t">needs: ' + esc((st.missing||[]).join(", ")) + "</span>"}</span></div>
+    <p style="color:var(--faint)">Keys are stored on the PC in workspace/state/agent.json and never sent back to this page. API usage is billed by the provider you pick. LM Studio's server defaults to port 1234, the same as SDRangel's IQ port, so change one of them (e.g. LM Studio → 1235).</p>
+    <div class="row"><button class="btn danger" id="ag-host-stop">stop the agent host</button></div>`;
+  $("ag-preset").onchange = e => { const v = presets[e.target.value] || {}; $("ag-base").value = v.base_url || ""; $("ag-model").value = (v.models||[])[0] || "";
+    $("ag-key").placeholder = v.needs_key ? "paste your key" : "not needed for local models"; $("ag-vision").value = "auto";
+    $("ag-models").innerHTML = (v.models||[]).map(m => `<option value="${esc(m)}">`).join(""); };
+  $("ag-save").onclick = async () => {
+    const body = {action:"config", preset:$("ag-preset").value, base_url:$("ag-base").value, model:$("ag-model").value, vision_mode:$("ag-vision").value,
+      context_tokens: $("ag-ctx").value || 0, tool_detail: $("ag-tools").value, compact_history: $("ag-compact").checked, nudge: $("ag-nudge").checked,
+      auto_recover: $("ag-recover").checked, stream: $("ag-stream").checked, max_reply_tokens: $("ag-maxout").value};
+    if ($("ag-key").value.trim()) body.api_key = $("ag-key").value.trim();
+    try { await postJ("api/agent", body, host.pid); toast("Saved"); renderAgentSettings(); } catch(e){ $("ag-msg").innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
+  };
+  postJ("api/agent", {action:"budget"}, host.pid).then(r => { const el = $("ag-ctxinfo"); if (el && r.budget)
+    el.textContent = `using ${r.budget.toLocaleString()} tokens (${r.source})${r.short_tools ? " · short tool descriptions" : ""}`; }).catch(() => {});
+  $("ag-list").onclick = async () => {
+    const body = {action:"config", preset:$("ag-preset").value, base_url:$("ag-base").value, vision_mode:$("ag-vision").value};
+    if ($("ag-key").value.trim()) body.api_key = $("ag-key").value.trim();
+    try { await postJ("api/agent", body, host.pid); const r = await postJ("api/agent", {action:"models"}, host.pid);
+      $("ag-models").innerHTML = r.models.map(m => `<option value="${esc(m)}">`).join("");
+      const det = r.details || r.models.map(id => ({id})); const cur = $("ag-model").value;
+      $("ag-pick").innerHTML = `<option value="">— pick one of ${det.length} models —</option>` + det.map(m => `<option value="${esc(m.id)}" ${m.id === cur ? "selected" : ""}>${esc(m.id)}${m.info ? "  (" + esc(m.info) + ")" : ""}</option>`).join("");
+      $("ag-pick-row").hidden = false;
+      $("ag-pick").onchange = e => { if (e.target.value) { $("ag-model").value = e.target.value; toast("Model set - press save"); } };
+      toast(det.length + " models listed");
+    } catch(e){ $("ag-msg").innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
+  };
+  $("ag-host-stop").onclick = async () => { if (!confirm("Stop the SDR Pilot host (dashboard agent + MCP over HTTP)?")) return;
+    try { await postJ("api/host/stop", {user:true}, host.pid); toast("Stopped"); } catch(e){ toast(e.message); } };
+}
+
+// ---------------------------------------------------------------- live spectrum + gap-free waterfall
+const spec = $("spec"), wf = $("wf");
+let lo = -90, hi = -20, wfCursor = null, wfKey = "", view = null, liveDelay = 200;
+function fit(c){ const r = c.getBoundingClientRect(); const d = devicePixelRatio||1;
+  if (c.width !== Math.round(r.width*d) || c.height !== Math.round(r.height*d)){ c.width = Math.max(1, Math.round(r.width*d)); c.height = Math.max(1, Math.round(r.height*d)); return true;} return false; }
+const CM = [[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]];
+function cmap(v){ v = Math.max(0, Math.min(1, v)) * (CM.length-1); const i = Math.min(Math.floor(v), CM.length-2), f = v-i;
+  return [0,1,2].map(k => CM[i][k]*(1-f) + CM[i+1][k]*f); }
+function pool(arr, n){ const out = new Float32Array(n); const step = arr.length / n;
+  for (let i=0;i<n;i++){ let m=-1e9; const a=Math.floor(i*step), b=Math.max(a+1, Math.floor((i+1)*step)); for (let j=a;j<b;j++) if (arr[j]>m) m=arr[j]; out[i]=m; } return out; }
+function scaleFrom(avg, mx){
+  const sorted = Array.from(avg).sort((a,b)=>a-b); const floor = sorted[Math.floor(sorted.length*0.3)];
+  let top = -1e9; for (const v of mx) if (v > top) top = v;
+  if (!scaleFrom.init){ lo = floor-6; hi = Math.max(top+3, floor+30); scaleFrom.init = true; return; }
+  lo = lo*0.9 + (floor-6)*0.1; hi = hi*0.9 + Math.max(top+3, floor+30)*0.1;
+}
+function drawSpectrum(avgArr, maxArr){
+  fit(spec);
+  const W = spec.width, H = spec.height, dpr = devicePixelRatio||1;
+  const avg = pool(avgArr, W), mx = pool(maxArr, W);
+  const g = spec.getContext("2d"); g.clearRect(0,0,W,H);
+  g.strokeStyle = "#1c2230"; g.lineWidth = 1;
+  for (let k=1;k<4;k++){ const y = Math.round(H*k/4)+.5; g.beginPath(); g.moveTo(0,y); g.lineTo(W,y); g.stroke(); }
+  const Y = v => H - (v-lo)/(hi-lo)*H;
+  g.beginPath(); for (let i=0;i<W;i++){ i?g.lineTo(i,Y(mx[i])):g.moveTo(i,Y(mx[i])); } g.strokeStyle = "rgba(122,168,255,.45)"; g.stroke();
+  g.beginPath(); for (let i=0;i<W;i++){ i?g.lineTo(i,Y(avg[i])):g.moveTo(i,Y(avg[i])); } g.strokeStyle = "#4fe0a8"; g.lineWidth = 1.5*dpr; g.stroke();
+  g.fillStyle = "#5b6273"; g.font = `${11*dpr}px monospace`; g.fillText(hi.toFixed(0)+" dB", 6*dpr, 14*dpr); g.fillText(lo.toFixed(0)+" dB", 6*dpr, H-6*dpr);
+}
+function wfRows(rows){   // rows: array of Float32Array (dB), newest last
+  if (fit(wf)) { const g = wf.getContext("2d"); g.fillStyle = "#05060a"; g.fillRect(0,0,wf.width,wf.height); }
+  const w = wf.getContext("2d"), dpr = devicePixelRatio||1, rowH = Math.max(1, Math.round(dpr));
+  const n = rows.length, sh = n * rowH;
+  if (sh < wf.height) w.drawImage(wf, 0, 0, wf.width, wf.height - sh, 0, sh, wf.width, wf.height - sh);
+  const img = w.createImageData(wf.width, 1);
+  const lut = []; for (let k=0;k<256;k++) lut.push(cmap(k/255));
+  rows.forEach((row, idx) => {
+    const px = pool(row, wf.width);
+    for (let i=0;i<wf.width;i++){ const c = lut[Math.max(0, Math.min(255, Math.round((px[i]-lo)/(hi-lo)*255)))]; img.data[i*4]=c[0]; img.data[i*4+1]=c[1]; img.data[i*4+2]=c[2]; img.data[i*4+3]=255; }
+    const y = (n - 1 - idx) * rowH;
+    for (let r=0;r<rowH;r++) if (y + r < wf.height) w.putImageData(img, 0, y + r);
+  });
+}
+function setView(center, rate){
+  const key = center + "|" + rate;
+  if (key !== wfKey){ wfKey = key; const g = wf.getContext("2d"); g.fillStyle = "#05060a"; g.fillRect(0,0,wf.width,wf.height); }
+  view = {center, rate};
+  $("live-note").textContent = fmtHz(center) + " · " + fmtRate(rate);
+  $("axis").innerHTML = `<span>${fmtHz(center - rate/2)}</span><span>${fmtHz(center)}</span><span>${fmtHz(center + rate/2)}</span>`;
+}
+async function live(){
+  if (document.hidden || !visible("live")){ setTimeout(live, 600); return; }
+  const t0 = performance.now();
+  try{
+    const bins = (spec.clientWidth || 600) < 520 ? 256 : 512;
+    const d = await getJ("api/wf?bins=" + bins + (wfCursor != null ? "&cursor=" + wfCursor : ""));
+    const hb = $("stuck-banner"), h = d.health || {};
+    if (hb){ hb.hidden = !h.message; hb.textContent = h.message ? "⚠ " + h.message : ""; }
+    if (d.mode === "rows" && d.n){
+      setView(d.center, d.rate);
+      wfCursor = d.cursor;
+      scaleFrom(d.avg, d.max);
+      drawSpectrum(d.avg, d.max);
+      const raw = atob(d.data), rows = [];
+      for (let r=0;r<d.n;r++){ const row = new Float32Array(d.bins); for (let i=0;i<d.bins;i++) row[i] = d.lo + raw.charCodeAt(r*d.bins+i)*d.step; rows.push(row); }
+      wfRows(rows);
+      const secs = (wf.height / Math.max(1, Math.round(devicePixelRatio||1))) * (d.slice_s || 0.05);
+      $("wfnote").textContent = `gap-free: every sample, ${Math.round((d.slice_s||.05)*1000)} ms per row · ${secs.toFixed(0)} s shown · tap to read a frequency`;
+    } else if (d.mode === "rows"){ wfCursor = d.cursor; }
+    else if (d.mode === "psd" && d.avg){
+      setView(d.center, d.rate); wfCursor = null;
+      scaleFrom(d.avg, d.max); drawSpectrum(d.avg, d.max); wfRows([Float32Array.from(d.max)]);
+      $("wfnote").textContent = "sampled view (spectrum recorder not running)";
+    } else { $("live-note").textContent = "waiting for radio"; }
+  }catch(e){}
+  const took = performance.now() - t0;
+  liveDelay = took > 600 ? 900 : took > 300 ? 450 : 200;   // slower links (phone over cellular) poll less often
+  setTimeout(live, liveDelay);
+}
+// frequency readout: hover (mouse) or touch
+(function(){
+  const wrap = $("specwrap"), cur = $("cursor"); let hideT = null;
+  function show(e){
+    if (!view) return;
+    const r = wrap.getBoundingClientRect(), x = Math.max(0, Math.min(r.width, e.clientX - r.left));
+    const f = view.center - view.rate/2 + x / r.width * view.rate;
+    const Z = uiZoom(); cur.style.display = "block"; cur.style.left = x / Z + "px"; cur.classList.toggle("flip", x > r.width - 150 * Z);
+    cur.querySelector("span").textContent = (f/1e6).toFixed(4) + " MHz";
+    clearTimeout(hideT); if (e.pointerType !== "mouse") hideT = setTimeout(() => cur.style.display = "none", 4000);
+  }
+  wrap.addEventListener("pointerdown", show); wrap.addEventListener("pointermove", e => { if (e.pointerType === "mouse" || e.buttons) show(e); });
+  wrap.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") cur.style.display = "none"; });
+})();
+// ---------------------------------------------------------------- radio settings panel
+let radioLast = null;
+function radioPlace(){
+  if (!LAY) return;
+  const inLive = LAY.radioIn === "live", body = $("radio-body");
+  $("live-radio-slot").hidden = !inLive;
+  $("p-radio").classList.toggle("merged", inLive);
+  const home = inLive ? $("live-radio-slot") : $("radio-home");
+  if (body.parentNode !== home) home.appendChild(body);
+  $("lr-more").textContent = LAY.radioMore ? "main settings" : "all settings";
+  if (radioLast) renderRadio(radioLast);
+}
+function radioAttach(on){ LAY.radioIn = on ? "live" : null; laySave(); radioPlace(); toast(on ? "Radio settings moved under the waterfall" : "Radio settings back in their own panel"); }
+$("lr-more").onclick = () => { LAY.radioMore = !LAY.radioMore; laySave(); radioPlace(); };
+function rdVal(key, v, hw){
+  if (v === null || v === undefined) return "—";
+  const onoff = ["lnaExt","biasT","biasTee","dcBlock","iqCorrection","agc","lnaAGC","mixerAGC","transverterMode","noModMode","iqOrder"];
+  if (onoff.includes(key) && (v === 0 || v === 1 || typeof v === "boolean")) return key === "iqOrder" ? (v ? "IQ" : "QI") : (v ? (key === "lnaExt" ? "on +14 dB" : "on") : "off");
+  if (key === "lnaGain" || key === "vgaGain") return v + (hw === "HackRF" ? " dB" : "");
+  if (key === "bandwidth" || key === "rfBandwidth" || key === "transverterDeltaFrequency") return fmtHz(v);
+  if (key === "devSampleRate") return fmtRate(v);
+  if (key === "LOppmTenths") return (v / 10).toFixed(1) + " ppm";
+  if (key === "log2Decim") return v ? "÷" + (2 ** v) : "none";
+  if (key === "fcPos") return ["infradyne","supradyne","centred"][v] || v;
+  if (key === "gain" && hw === "RTLSDR") return (v / 10).toFixed(1) + " dB";
+  return typeof v === "number" ? String(v) : esc(String(v));
+}
+function rdFreq(h){
+  if (!h) return "—";
+  const s = Math.round(h).toString().padStart(4, "0"), mhz = s.slice(0, -6) || "0", rest = s.slice(-6);
+  return `${mhz}.${rest.slice(0,3)}<small>${rest.slice(3)}</small> MHz`;
+}
+function renderRadio(d){
+  const el = $("radio-body");
+  if (!d || !d.connected){ el.innerHTML = `<div class="empty">${d && d.error ? esc(d.error) : "The receiver's settings appear here once the radio is connected."}</div>`; $("radio-note").textContent = "not connected"; return; }
+  const hw = d.hw_type || "", now = d.t || Date.now() / 1000, f = d.fields || [];
+  const recent = {}; (d.changes || []).forEach(c => { if (now - c.t < 45) recent[c.key] = c; });
+  const ago = t => { const s = Math.max(0, Math.round(now - t)); return s < 60 ? s + " s ago" : Math.round(s / 60) + " min ago"; };
+  const tip = c => c ? ` title="changed ${ago(c.t)} by ${esc(c.by)} (was ${esc(String(c.from))})"` : "";
+  const fv = k => (f.find(x => x.key === k) || {}).value;
+  $("radio-note").textContent = `${hw} · ${d.state || ""}`;
+  let h = `<div class="rd-top"><span class="rd-freq${recent.center_freq_hz ? " chg" : ""}"${tip(recent.center_freq_hz)}>${rdFreq(d.center_freq_hz)}</span>
+    <span class="rd-sub">${fmtRate(d.sample_rate)}${d.stream && d.stream.rate ? ` · stream ${fmtRate(d.stream.rate)}` : ""}${d.stream && d.stream.bits ? ` · ${d.stream.bits}-bit` : ""} · ${esc(hw)} ${esc(d.state || "")}</span></div>`;
+  if (hw === "HackRF"){
+    const st = (lbl, val, k, off) => `<span class="st${off ? " off" : ""}${recent[k] ? " chg" : ""}" title="${esc(((f.find(x => x.key === k) || {}).desc || "") + (recent[k] ? "\nchanged " + ago(recent[k].t) + " by " + recent[k].by + " (was " + recent[k].from + ")" : ""))}"><small>${lbl}</small>${val}</span>`;
+    h += `<div class="rd-chain"><span class="ar">ANT →</span>${st("RF amp", fv("lnaExt") ? "+14 dB" : "off", "lnaExt", !fv("lnaExt"))}<span class="ar">→ mixer →</span>
+      ${st("LNA", (fv("lnaGain") ?? "—") + " dB", "lnaGain")}<span class="ar">→ mixer →</span>${st("Filter", fmtHz(fv("bandwidth")), "bandwidth")}<span class="ar">→</span>
+      ${st("VGA", (fv("vgaGain") ?? "—") + " dB", "vgaGain")}<span class="ar">→ ADC</span>${d.total_gain_db != null ? `<span class="tot">= ${d.total_gain_db} dB</span>` : ""}</div>`;
+  } else if ((d.chain || []).length){
+    const st = k => { const x = f.find(y => y.key === k) || {}; const c = recent[k];
+      return `<span class="st${c ? " chg" : ""}" title="${esc((x.desc || "") + (c ? "\nchanged " + ago(c.t) + " by " + c.by + " (was " + c.from + ")" : ""))}"><small>${esc(x.label || k)}</small>${rdVal(k, x.value, hw)}</span>`; };
+    h += `<div class="rd-chain"><span class="ar">ANT →</span>${d.chain.map(st).join('<span class="ar">→</span>')}<span class="ar">→ ADC</span>${d.total_gain_db != null ? `<span class="tot">≈ ${Math.round(d.total_gain_db * 10) / 10} dB</span>` : ""}</div>`;
+  } else if (d.total_gain_db != null){
+    h += `<div class="rd-chain"><span class="tot">total gain ≈ ${Math.round(d.total_gain_db * 10) / 10} dB</span></div>`;
+  }
+  if (d.level){
+    const v = String(d.level.verdict || ""), cls = /clip|over|high/i.test(v) ? "bad" : /low|weak|pinned/i.test(v) ? "warn" : "ok";
+    h += `<div class="rd-lvl">level: rms ${d.level.rms_dbfs} dBFS · peak ${d.level.peak_dbfs} dBFS · clipped ${d.level.clipped_pct}% · <span class="${cls}">${esc(v)}</span></div>`;
+  }
+  const attached = LAY && LAY.radioIn === "live";
+  const inChain = new Set(hw === "HackRF" ? ["lnaExt","lnaGain","vgaGain","bandwidth"] : (d.chain || []));
+  const show = f.filter(x => !inChain.has(x.key) && (!attached || LAY.radioMore || x.main));
+  if (show.length) h += `<div class="rd-grid">${show.map(x => `<div class="rd-f${recent[x.key] ? " chg" : ""}" title="${esc(x.key + (x.desc ? " - " + x.desc : ""))}${recent[x.key] ? "\nchanged " + ago(recent[x.key].t) + " by " + esc(recent[x.key].by) : ""}"><small>${esc(x.label)}</small><b>${rdVal(x.key, x.value, hw)}</b></div>`).join("")}</div>`;
+  const ch = (d.changes || []).slice().reverse();
+  if (ch.length){
+    const lab = k => k === "center_freq_hz" ? "centre" : k === "sample_rate" ? "sample rate" : ((f.find(x => x.key === k) || {}).label || k);
+    const val = (k, v) => k === "center_freq_hz" ? fmtHz(v) : k === "sample_rate" ? fmtRate(v) : rdVal(k, v, hw);
+    h += `<details class="rd-chg"${radioLast && radioLast._chgOpen ? " open" : ""} ontoggle="if(radioLast) radioLast._chgOpen = this.open"><summary>recent changes (${ch.length})</summary>${ch.slice(0, 12).map(c =>
+      `<div>${new Date(c.t * 1000).toLocaleTimeString()} · ${esc(lab(c.key))} ${val(c.key, c.from)} → <b>${val(c.key, c.to)}</b> · <i>${esc(c.by)}</i></div>`).join("")}</details>`;
+  }
+  el.innerHTML = h;
+}
+async function radioPoll(){
+  const shown = LAY && (LAY.radioIn === "live" ? !LAY.hidden.includes("p-live") : !LAY.hidden.includes("p-radio"));
+  if (!document.hidden && visible("live") && shown){
+    try{ const d = await getJ("api/radio"); if (radioLast) d._chgOpen = radioLast._chgOpen; radioLast = d; renderRadio(d); }catch(e){}
+  }
+  setTimeout(radioPoll, 2000);
+}
+// signals (transmitter table, same data the AI's spectrum_watch sees)
+let sigSel = null, sigData = [];
+async function signals(){
+  if (!document.hidden && visible("live")){
+    try{
+      const d = await getJ("api/signals?seconds=30");
+      sigData = d.transmitters || [];
+      $("sig-note").textContent = d.noise_floor_dbfs != null ? `last ${d.window_s} s · floor ${d.noise_floor_dbfs} dBFS` : (d.note || "");
+      $("sigs").innerHTML = sigData.length ? sigData.slice(0, 14).map((t, i) => `<div class="sig ${sigSel === t.freq_mhz ? "on" : ""}" onclick="selSig(${i})">
+        <span class="f">${t.freq_mhz.toFixed(4)}</span><span class="db">+${t.peak_db_above_floor} dB</span>
+        <span><div class="bar" style="width:${Math.min(100, t.peak_db_above_floor*2.2)}%"></div></span>
+        <span class="k">${esc(t.kind)} · ${t.bandwidth_khz} kHz${t.kind !== "continuous" ? ` · ${t.bursts} bursts` + (t.repeat_every_s ? ` every ${t.repeat_every_s} s` : "") : ""} · ${t.duty_pct}% on</span></div>`).join("")
+        : `<div class="empty">${esc(d.note || "Nothing above the noise in the last 30 s.")}</div>`;
+      drawMark();
+    }catch(e){}
+  }
+  setTimeout(signals, 3000);
+}
+function selSig(i){ const t = sigData[i]; if (!t) return; sigSel = sigSel === t.freq_mhz ? null : t.freq_mhz; drawMark(); document.querySelectorAll(".sig").forEach((el, k) => el.classList.toggle("on", sigData[k] && sigData[k].freq_mhz === sigSel)); }
+function drawMark(){
+  const m = $("mark"); const t = sigData.find(x => x.freq_mhz === sigSel);
+  if (!t || !view){ m.style.display = "none"; return; }
+  const W = $("specwrap").clientWidth, f0 = view.center - view.rate/2;
+  const bw = Math.max(t.bandwidth_khz*1e3, view.rate/300);
+  const x0 = (t.freq_mhz*1e6 - bw/2 - f0) / view.rate * W, x1 = (t.freq_mhz*1e6 + bw/2 - f0) / view.rate * W;
+  m.style.display = "block"; m.style.left = x0 + "px"; m.style.width = Math.max(2, x1 - x0) + "px";
+}
+
+// ---------------------------------------------------------------- system map
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text){ const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+function ago(t, now){ if (!t) return ""; const s = Math.max(0, now - t); return s < 60 ? Math.round(s)+"s ago" : Math.round(s/60)+"m ago"; }
+function drawSystem(sys, now){
+  const svg = $("sys-svg"); if (!sys || sys.error) return;
+  svg.innerHTML = "";
+  const defs = el("defs", {}, svg);
+  const mk = el("marker", {id:"arr", viewBox:"0 0 10 10", refX:"9", refY:"5", markerWidth:"7", markerHeight:"7", orient:"auto-start-reverse"}, defs);
+  el("path", {d:"M0,0 L10,5 L0,10 z", fill:"#5b6273"}, mk);
+  const node = (x, y, w, h, title, sub, state) => {
+    const g = el("g", {}, svg);
+    const col = state === "ok" ? "#4fe0a8" : state === "run" ? "#ffb347" : state === "bad" ? "#ff6b81" : "#3a4152";
+    el("rect", {x, y, width:w, height:h, rx:10, fill:"#141824", stroke:col, "stroke-width": state ? 1.6 : 1}, g);
+    el("text", {x:x+12, y:y+22, fill:"#e6e8ee", "font-size":14, "font-weight":600, "font-family":"Segoe UI, system-ui, sans-serif"}, g, title);
+    (Array.isArray(sub) ? sub : [sub]).filter(Boolean).forEach((line, i) =>
+      el("text", {x:x+12, y:y+40+i*15, fill:"#8a91a3", "font-size":11.5, "font-family":"Cascadia Mono, Consolas, monospace"}, g, line));
+    return {x, y, w, h, cx:x+w/2, cy:y+h/2};
+  };
+  const edge = (a, b, label, active, color, opts={}) => {
+    const x1 = opts.fromSide === "top" ? a.cx + (opts.dx||0) : opts.fromSide === "bottom" ? a.cx + (opts.dx||0) : opts.rev ? a.x : a.x + a.w;
+    const y1 = opts.fromSide === "top" ? a.y : opts.fromSide === "bottom" ? a.y + a.h : a.cy + (opts.dy||0);
+    const x2 = opts.toSide === "top" ? b.cx + (opts.dx||0) : opts.toSide === "bottom" ? b.cx + (opts.dx||0) : opts.rev ? b.x + b.w : b.x;
+    const y2 = opts.toSide === "top" ? b.y : opts.toSide === "bottom" ? b.y + b.h : b.cy + (opts.dy||0);
+    const vertical = opts.fromSide || opts.toSide;
+    const d = vertical ? `M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}` : `M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}`;
+    const c = active ? (color || "#4fe0a8") : "#2c3240";
+    el("path", {d, fill:"none", stroke:c, "stroke-width": active ? 2.2 : 1.4, class: active ? "flow" : "", "marker-end": opts.noArrow ? "" : "url(#arr)"}, svg);
+    if (label){ const lx = (x1+x2)/2 + (opts.lx||0), ly = (y1+y2)/2 + (opts.ly||-7);
+      el("rect", {x: lx - label.length*3.4 - 4, y: ly - 11, width: label.length*6.8 + 8, height: 15, rx: 3, fill:"#0d1016"}, svg);
+      el("text", {x:lx, y:ly, fill: active ? "#b9c0d0" : "#5b6273", "font-size":11, "text-anchor":"middle", "font-family":"Cascadia Mono, Consolas, monospace"}, svg, label); }
+  };
+  const st = sys.stream || {}, z = sys.zmq || {};
+  const connected = st.connected;
+  const hw = node(20, 150, 150, 62, sys.mode === "sim" ? "Simulated SDR" : (sys.hw || "SDR"), [fmtHz(sys.center), fmtRate(sys.rate)], connected ? "ok" : "");
+  const ang = node(230, 150, 175, 62, "SDRangel", [sys.sdrangel || "", "Remote TCP Sink :" + (st.port || "?")], connected ? "ok" : "bad");
+  const lt = sys.last_tool;
+  const aiName = (sys.ai || "AI").length > 26 ? (sys.ai || "AI").slice(0, 25) + "…" : (sys.ai || "AI");
+  const ai = node(470, 14, 210, 58, aiName, lt ? `${lt.title} · ${ago(lt.t, now)}` : "waiting for a tool call", sys.tool_running ? "run" : "");
+  const pil = node(470, 150, 210, 62, "SDR Pilot", [`${sys.kind === "host" ? "host" : "MCP server"} · pid ${sys.pid}`, (sys.monitor ? "monitor on" : "") + (sys.capturing ? " capturing" : "") || "ring buffer + analysis"], "ok");
+  const dash = node(470, 288, 210, 56, "Dashboard (you)", (sys.dashboard || "").replace("http://", ""), "ok");
+  const zmq = node(745, 150, 165, 62, "ZeroMQ fan-out", [z.address ? z.address.replace("tcp://", "") : "", z.active ? `${z.subscribers} subscriber(s)` : "idle"], z.active ? "ok" : "");
+  edge(hw, ang, "USB IQ", connected, null, {lx:0});
+  edge(ang, pil, (st.protocol || "IQ") + (st.bits ? ` ${st.bits}-bit` : "") + (st.rate ? ` · ${(st.rate/1e6).toFixed(2)} MS/s` : ""), connected, null, {dy:-12, ly:-18});
+  edge(pil, ang, "REST control", !!lt, "#7aa8ff", {dy:14, ly:26, rev:true});
+  edge(ai, pil, sys.kind === "host" ? "tools (in-process)" : "MCP tools", sys.tool_running, "#ffb347", {fromSide:"bottom", toSide:"top", lx:56, ly:4});
+  edge(pil, dash, "HTTP", true, "#7aa8ff", {fromSide:"bottom", toSide:"top", lx:24, ly:4});
+  edge(pil, zmq, "complex IQ", z.active);
+  const jobs = (sys.jobs || []).slice(-5);
+  const jh = 52, gap = 10, top = Math.max(8, 181 - (jobs.length * (jh + gap) - gap) / 2);
+  if (!jobs.length) node(965, 156, 185, 50, "GNU Radio", "no flowgraph runs yet", "");
+  jobs.forEach((j, i) => {
+    const state = j.status === "running" ? "run" : (j.status === "finished" || j.status === "stopped") ? "ok" : "bad";
+    const n = node(965, top + i * (jh + gap), 185, jh, `${j.id} · ${j.name}`.slice(0, 24), [j.status + (j.outputs.length ? " → " + j.outputs.join(", ") : "")].map(t => t.length > 25 ? t.slice(0, 24) + "…" : t), state);
+    if (j.live) edge(zmq, n, "", j.status === "running", "#ffb347", {});
+  });
+  if (sys.grc_open){ const g = node(745, 286, 165, 56, "GNU Radio Companion", (sys.grc_open.name || "").slice(0, 22), "ok");
+    edge(zmq, g, "", z.active, "#7aa8ff", {fromSide:"bottom", toSide:"top"}); }
+  if (sys.mcp_http) el("text", {x:690, y:30, fill:"#8a91a3", "font-size":11.5, "font-family":"Cascadia Mono, Consolas, monospace"}, svg, `MCP over HTTP :${sys.mcp_http.port}`);
+  if (sys.lease_other) el("text", {x:20, y:350, fill:"#ffb347", "font-size":12, "font-family":"Segoe UI, sans-serif"}, svg,
+     `Another chat's SDR Pilot (pid ${sys.lease_other.pid}) is using the radio: ${(sys.lease_other.reasons||[]).join(", ")}`);
+}
+
+// ---------------------------------------------------------------- flowgraph view (GRC-style)
+const DT = {complex:"#3399ff", float:"#ff8c69", int:"#00e38c", short:"#e6e65c", byte:"#e066ff", message:"#9aa0ad", bit:"#e066ff"};
+const dcol = d => DT[d] || "#9aa0ad";
+const DTNAME = {complex:"complex IQ samples", float:"real numbers (float)", int:"32-bit integers", short:"16-bit integers",
+  byte:"bytes (often one bit per byte)", bit:"bits", message:"messages (PDUs / decoded data)"};
+const tipOf = new WeakMap();
+function portTip(b, pt, out, conns){
+  const kind = pt.domain === "message" ? DTNAME.message : (DTNAME[pt.dtype] || pt.dtype) + (pt.vlen ? ` · vectors of ${pt.vlen}` : "");
+  const linked = conns.filter(c => out ? (c.src === b.name && c.src_port === pt.key) : (c.dst === b.name && c.dst_port === pt.key))
+    .map(c => out ? `→ ${c.dst}:${c.dst_port}` : `← ${c.src}:${c.src_port}`);
+  return `<b>${out ? "Output" : "Input"} ${esc(pt.label || pt.key)}</b> <span class="ty">of ${esc(b.label)}</span><br>` +
+    `<span style="color:${dcol(pt.domain === "message" ? "message" : pt.dtype)}">■</span> ${esc(kind)}${pt.optional ? " · optional" : ""}<br>` +
+    (linked.length ? esc(linked.join(", ")) : `<span class="ask">not connected yet</span>`);
+}
+function blockTip(b){
+  let h = `<b>${esc(b.label)}</b>${b.variable ? "" : ` <span class="ty">${esc(b.name)} · ${esc(b.type || "")}</span>`}<br>`;
+  if (b.doc) h += esc(b.doc) + (b.doc_by === "ai" ? `<br><span class="ai">description written by the AI</span>` : "");
+  else if (b.ai_made) h += `<span class="ask">The AI made this block and hasn't described it yet - it has been asked to.</span>`;
+  else h += b.variable ? "A variable other blocks use." : `<span class="ty">no description available</span>`;
+  if (b.note) h += `<br><i>Why it's here:</i> ${esc(b.note)}`;
+  if (b.errors && b.errors.length) h += `<br><span class="er">${b.errors.map(esc).join("<br>")}</span>`;
+  return h;
+}
+function drawKey(d){
+  const key = $("fg-key");
+  if (!d || !d.blocks || !d.blocks.length){ key.hidden = true; return; }
+  const used = new Set(); let msg = false, open = false;
+  d.blocks.forEach(b => [...b.inputs, ...b.outputs].forEach(p => { if (p.domain === "message") msg = true; else used.add(DT[p.dtype] ? p.dtype : "other"); }));
+  d.blocks.forEach(b => { if ((b.open || []).length) open = true; });
+  let closed = false; try { closed = localStorage.getItem("sdrpilot.fgkey") === "closed"; } catch(e) {}
+  const order = ["complex", "float", "int", "short", "byte"];
+  let h = `<div class="kh" id="fg-key-h"><span>Port colours</span><span>${closed ? "▸" : "▾"}</span></div>`;
+  order.forEach(t => { h += `<div class="kr ${used.has(t) ? "" : "off"}"><span class="sw" style="background:${DT[t]}"></span>${t} · ${DTNAME[t]}</div>`; });
+  h += `<div class="kr ${msg ? "" : "off"}"><span class="ln"></span>message · ${DTNAME.message}</div>`;
+  h += `<div class="kr ${open ? "" : "off"}"><span class="sw open"></span>hollow port · not connected yet</div>`;
+  h += `<div class="kr ${d.running_job ? "" : "off"}"><span class="ln run"></span>moving dashes · flowgraph running</div>`;
+  h += `<div class="hint">Hover (or tap) a block, port or wire for what it does.</div>`;
+  key.innerHTML = h; key.hidden = false; key.classList.toggle("closed", closed);
+  $("fg-key-h").onclick = () => { const c = !key.classList.contains("closed"); key.classList.toggle("closed", c);
+    try { localStorage.setItem("sdrpilot.fgkey", c ? "closed" : "open"); } catch(e) {}
+    $("fg-key-h").lastChild.textContent = c ? "▸" : "▾"; };
+}
+(function fgTips(){
+  const wrap = $("fg-wrap"), svg = $("fg-svg"), tip = $("fg-tip");
+  const find = n => { while (n && n !== svg && n !== wrap){ if (tipOf.has(n)) return n; n = n.parentNode; } return null; };
+  const show = (n, x, y) => { const r = wrap.getBoundingClientRect(); tip.innerHTML = tipOf.get(n); tip.style.display = "block";
+    // the interface-size setting zooms the page: mouse/rect coordinates are on screen, the tip's left/top are in the
+    // wrap's own (unzoomed) pixels - convert, or the tip drifts away from the pointer the more it's zoomed
+    const k = r.width / (wrap.offsetWidth || r.width) || 1, W = wrap.clientWidth, Hh = wrap.clientHeight;
+    const px = (x - r.left) / k, py = (y - r.top) / k;
+    let lx = px + 14, ly = py + 14;
+    if (lx + tip.offsetWidth > W - 6) lx = Math.max(6, px - tip.offsetWidth - 12);
+    if (ly + tip.offsetHeight > Hh - 6) ly = Math.max(6, py - tip.offsetHeight - 12);
+    tip.style.left = lx + "px"; tip.style.top = ly + "px"; };
+  let down = null, pinned = 0;
+  svg.addEventListener("mousemove", e => { if (e.buttons || Date.now() < pinned) return; const n = find(e.target); if (n) show(n, e.clientX, e.clientY); else tip.style.display = "none"; });
+  svg.addEventListener("mouseleave", () => { if (Date.now() >= pinned) tip.style.display = "none"; });
+  wrap.addEventListener("pointerdown", e => { down = {x:e.clientX, y:e.clientY, t:Date.now()}; if (e.pointerType === "mouse") tip.style.display = "none"; }, true);
+  wrap.addEventListener("pointerup", e => {   // a tap (touch screens have no hover): show that element's tip for a while
+    if (!down || e.pointerType === "mouse" || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8 || Date.now() - down.t > 500) return;
+    const n = find(document.elementFromPoint(e.clientX, e.clientY));
+    if (n){ show(n, e.clientX, e.clientY); pinned = Date.now() + 4000; setTimeout(() => { if (Date.now() >= pinned) tip.style.display = "none"; }, 4100); }
+    else tip.style.display = "none";
+  }, true);
+  $("fg-key").addEventListener("pointerdown", e => e.stopPropagation());
+})();
+let fgState = {name:null, mtime:0, data:null, vb:null, userPick:0, userMove:0, seen:{}, follow:true, focus:null, focusWhat:""};
+try { fgState.follow = localStorage.getItem("sdrpilot.fgfollow") !== "0"; } catch(e) {}
+function blockSize(b){
+  const lines = [b.label, ...b.params.map(p => p[0] + ": " + p[1])];
+  const w = Math.max(150, Math.min(390, Math.max(...lines.map(t => t.length)) * 6.6 + 26));
+  const np = Math.max(b.inputs.length, b.outputs.length);
+  const h = Math.max(30 + b.params.length * 15 + 10, 18 + np * 20 + 6, b.variable ? 44 : 50);
+  return {w, h};
+}
+// phones: re-lay the graph top-to-bottom (one layer per row) so a long chain stays readable on a narrow screen
+function stackLayout(d){
+  const blocks = d.blocks.map(b => ({...b})), by = Object.fromEntries(blocks.map(b => [b.name, b]));
+  const main = blocks.filter(b => !b.variable), vars = blocks.filter(b => b.variable);
+  const depth = Object.fromEntries(main.map(b => [b.name, 0]));
+  for (let k = 0; k < main.length; k++){ let ch = false;
+    d.connections.forEach(c => { if (c.src in depth && c.dst in depth && depth[c.dst] < depth[c.src] + 1 && depth[c.src] < main.length){ depth[c.dst] = depth[c.src] + 1; ch = true; } });
+    if (!ch) break; }
+  const rows = []; main.sort((a, b) => a.y - b.y).forEach(b => (rows[depth[b.name]] = rows[depth[b.name]] || []).push(b));
+  const W = Math.max(420, ...main.map(b => blockSize(b).w + 40));
+  let y = 0, x = 0, rowH = 0;
+  vars.forEach(b => { const s = blockSize(b); if (x && x + s.w > W){ x = 0; y += rowH + 16; rowH = 0; } b.x = x; b.y = y; x += s.w + 16; rowH = Math.max(rowH, s.h); });
+  if (vars.length) y += rowH + 50;
+  rows.filter(Boolean).forEach(r => { const ws = r.map(b => blockSize(b).w), tot = ws.reduce((a, c) => a + c, 0) + (r.length - 1) * 40;
+    let xx = Math.max(0, (W - tot) / 2), hh = 0;
+    r.forEach((b, i) => { b.x = xx; b.y = y; xx += ws[i] + 40; hh = Math.max(hh, blockSize(b).h); });
+    y += hh + 64; });
+  return {...d, blocks};
+}
+function portY(b, i, n, size){ const span = size.h - 16; return b.y + 8 + (n === 1 ? span/2 : (i + 0.5) * span / n); }
+function drawFlowgraph(d){
+  const svg = $("fg-svg"); svg.innerHTML = "";
+  if (d && d.blocks && d.blocks.length > 2 && $("fg-wrap").clientWidth < 640) d = stackLayout(d);
+  $("fg-msg").style.display = d && d.blocks && d.blocks.length ? "none" : "flex";
+  if (d && d.error){ $("fg-msg").textContent = d.error; $("fg-msg").style.display = "flex"; drawKey(null); return; }
+  if (!d || !d.blocks){ drawKey(null); return; }
+  const size = {}, pos = {};
+  let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+  d.blocks.forEach(b => { const s = blockSize(b); size[b.name] = s; pos[b.name] = b;
+    minx = Math.min(minx, b.x); miny = Math.min(miny, b.y); maxx = Math.max(maxx, b.x + s.w); maxy = Math.max(maxy, b.y + s.h); });
+  const running = !!d.running_job;
+  const portPt = (bn, key, out) => { const b = pos[bn]; if (!b) return null; const s = size[bn];
+    const list = out ? b.outputs : b.inputs; let i = list.findIndex(p => p.key === key); if (i < 0) i = 0;
+    return {x: out ? b.x + s.w : b.x, y: portY(b, i, Math.max(list.length, 1), s)}; };
+  // what's new since this flowgraph was last drawn -> animate it in (a fresh one reveals block by block)
+  const prev = fgState.seen[d.name];
+  const recent = d.mtime && (Date.now()/1000 - d.mtime) < 90;
+  const order = d.blocks.filter(b => !b.variable).map(b => b.name);
+  const fresh = new Set(prev ? d.blocks.filter(b => !prev.has(b.name)).map(b => b.name) : (recent ? d.blocks.map(b => b.name) : []));
+  const delay = n => { if (!fresh.has(n)) return 0; const i = order.indexOf(n); return prev ? 0 : Math.min(Math.max(i, 0), 30) * 0.16; };
+  fgState.seen[d.name] = new Set(d.blocks.map(b => b.name));
+  fgState.fresh = fresh;
+  const gConn = el("g", {}, svg), gBlk = el("g", {}, svg);
+  d.connections.forEach(c => {
+    const a = portPt(c.src, c.src_port, true), b = portPt(c.dst, c.dst_port, false); if (!a || !b) return;
+    const dx = Math.max(40, Math.abs(b.x - a.x) / 2);
+    const msg = c.domain === "message";
+    const pth = el("path", {d:`M${a.x},${a.y} C${a.x+dx},${a.y} ${b.x-dx},${b.y} ${b.x},${b.y}`, fill:"none", stroke:dcol(msg ? "message" : c.dtype),
+      "stroke-width": 2, "stroke-dasharray": msg ? "5 4" : (running ? "7 5" : ""), class: running && !msg ? "flow" : "", opacity:.9}, gConn);
+    if (fresh.has(c.dst) || fresh.has(c.src)){ pth.style.animation = `fgin .45s ease-out ${Math.max(delay(c.dst), delay(c.src)) + .2}s both`; }
+    const hit = el("path", {d: pth.getAttribute("d"), fill:"none", stroke:"transparent", "stroke-width": 12}, gConn);
+    tipOf.set(hit, `<b>${esc(c.src)}:${esc(c.src_port)} → ${esc(c.dst)}:${esc(c.dst_port)}</b><br><span style="color:${dcol(msg ? "message" : c.dtype)}">■</span> ${esc(msg ? DTNAME.message : (DTNAME[c.dtype] || c.dtype))}`);
+  });
+  d.blocks.forEach(b => {
+    const s = size[b.name], g = el("g", {opacity: b.enabled === false ? .35 : 1}, gBlk);
+    if (fresh.has(b.name)){ g.setAttribute("class", "fg-in"); g.style.animationDelay = delay(b.name) + "s"; }
+    const err = b.errors && b.errors.length, open = new Set(b.open || []);
+    el("rect", {x:b.x, y:b.y, width:s.w, height:s.h, rx:6, class:"frame", fill: b.variable ? "#171b26" : "#1b2130", stroke: err ? "#ff6b81" : (b.variable ? "#3a4152" : "#4a5268"), "stroke-width": err ? 2 : 1.2}, g);
+    el("text", {x:b.x + s.w/2, y:b.y + 18, fill:"#e6e8ee", "font-size":12.5, "font-weight":600, "text-anchor":"middle", "font-family":"Segoe UI, system-ui, sans-serif"}, g, b.variable ? `${b.label}: ${b.name}` : b.label);
+    b.params.forEach((p, i) => el("text", {x:b.x + 10, y:b.y + 36 + i*15, fill:"#a9b0c0", "font-size":11, "font-family":"Cascadia Mono, Consolas, monospace"}, g, `${p[0]}: ${p[1]}`));
+    if (!b.variable) el("text", {x:b.x + s.w - 6, y:b.y + s.h + 12, fill:"#5b6273", "font-size":10, "text-anchor":"end", "font-family":"Cascadia Mono, Consolas, monospace"}, g, b.name);
+    tipOf.set(g, blockTip(b));
+    const port = (x, y, pt, isOpen, out) => { const c = dcol(pt.domain === "message" ? "message" : pt.dtype);
+      const r = el("rect", {x, y:y - 6, width:9, height:12, rx:2, fill: isOpen ? "#0d1016" : c, stroke: isOpen ? c : "none", "stroke-width": 1.6, class: isOpen ? "fg-open" : ""}, g);
+      const hit = el("rect", {x: x - 4, y: y - 9, width: 17, height: 18, fill: "transparent"}, g);
+      const t = portTip(b, pt, out, d.connections); tipOf.set(r, t); tipOf.set(hit, t); };
+    b.inputs.forEach((pt, i) => port(b.x - 9, portY(b, i, b.inputs.length, s), pt, open.has("in:" + pt.key), false));
+    b.outputs.forEach((pt, i) => port(b.x + s.w, portY(b, i, b.outputs.length, s), pt, open.has("out:" + pt.key), true));
+    if (b.note){ const maxc = Math.max(18, Math.floor(s.w / 6.2));
+      const nt = el("text", {x:b.x + 2, y:b.y + s.h + (b.variable ? 14 : 26), fill:"#7f8aa3", "font-size":10.5, "font-style":"italic", "font-family":"Segoe UI, system-ui, sans-serif"}, g,
+        b.note.length > maxc ? b.note.slice(0, maxc - 1) + "…" : b.note); }
+  });
+  const pad = 40, vb = [minx - pad, miny - pad, (maxx - minx) + 2*pad, (maxy - miny) + 2*pad + 28];
+  fgState.full = vb;
+  // follow the build: re-fit when blocks were added, unless the user panned/zoomed in the last 15 s
+  if (!fgState.vb || (fresh.size && Date.now() - fgState.userMove > 15000)) fgState.vb = vb.slice();
+  svg.setAttribute("viewBox", fgState.vb.join(" "));
+  const errs = [...(d.errors || []), ...d.blocks.filter(b => b.errors && b.errors.length).map(b => `${b.name}: ${b.errors[0]}`)];
+  $("fg-errs").style.display = errs.length ? "" : "none"; $("fg-errs").textContent = errs.slice(0, 4).join("   ·   ");
+  const nb = d.blocks.filter(b => !b.variable).length;
+  $("fg-status").innerHTML = running ? `<span class="pill-run">● ${d.running_job}</span>`
+    : d.draft ? `<span class="${errs.length ? "pill-bad" : "pill-build"}">✎ building · ${nb} block${nb === 1 ? "" : "s"}${d.open_ports ? " · " + d.open_ports + " open" : ""}${errs.length ? " · errors" : ""}</span>`
+    : d.valid ? '<span class="pill-ok">✓ valid</span>' : '<span class="pill-bad">✕ errors</span>';
+  drawBuildLog(d);
+  drawKey(d);
+}
+function drawBuildLog(d){
+  const box = $("fg-log"), hist = d.history || [];
+  if (hist.length < 2){ box.style.display = "none"; return; }
+  const ago = t => { const s = Date.now()/1000 - t; return s < 60 ? Math.round(s) + "s" : s < 3600 ? Math.round(s/60) + "m" : Math.round(s/3600) + "h"; };
+  let n = 0;
+  const rows = hist.map(h => { const isAdd = h.op === "add"; if (isAdd) n++;
+    const isNew = isAdd && fgState.fresh && fgState.fresh.has(h.block);
+    return `<div class="st ${isNew ? "new" : ""} ${h.op === "edit" ? "edit" : ""}"><span class="n">${isAdd ? n + "." : h.op === "edit" ? "✎" : "•"}</span>
+      <span>${isAdd ? `<b>${esc(h.text)}</b>` : h.op === "edit" ? `<b>edit</b> ${esc(h.text)}` : esc(h.text)}${h.note ? ` <span class="why">— ${esc(h.note)}</span>` : ""}</span>
+      <span class="n" style="margin-left:auto">${ago(h.t)}</span></div>`; });
+  const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
+  box.innerHTML = `<div class="hd"><span>Build steps</span><span>${d.draft ? "in progress" : ""}</span></div>` + rows.join("");
+  box.style.display = "";
+  if (atEnd || (fgState.fresh && fgState.fresh.size)) box.scrollTop = box.scrollHeight;
+}
+let fgTick = 0;
+// ---------------------------------------------------------------- decoded data (SPDATA records from decoder jobs)
+const decState = {job: "", pick: "", seen: 0, rows: {}};
+async function pollDecoded(){
+  const anyData = lastState && (lastState.jobs || []).some(j => j.decoded_count > 0);
+  if (!document.hidden && anyData && visible("runs") && !$("p-dec").classList.contains("lay-hidden")){
+    try{
+      const d = await getJ("api/decoded?job=" + encodeURIComponent(decState.pick) + q());
+      renderDecoded(d);
+    }catch(e){}
+  }
+  setTimeout(pollDecoded, document.hidden ? 4000 : 1000);
+}
+function renderDecoded(d){
+  const sel = $("dec-sel");
+  const opts = (d.jobs || []).map(j => `<option value="${esc(j.job_id)}">${esc(j.job_id)} · ${esc(j.flowgraph)} · ${j.count}${j.status === "running" ? " ●" : ""}</option>`).join("");
+  if (sel.dataset.o !== opts){ sel.innerHTML = opts; sel.dataset.o = opts; }
+  const J = d.job; if (!J){ return; }
+  sel.value = J.job_id;
+  $("dec-note").textContent = `${J.count} record${J.count === 1 ? "" : "s"} · ${Object.entries(J.kinds || {}).map(([k, n]) => k + " " + n).join(", ")}${J.status === "running" ? " · live" : " · " + J.status}`;
+  let h = "";
+  const R = J.rds;
+  if (R){
+    const fl = R.flags && typeof R.flags === "object" ? Object.entries(R.flags).map(([k, v]) => `<span class="${v ? "on" : ""}">${esc(k.replace(/_/g, " "))}</span>`).join("") : esc(R.flags || "");
+    h += `<div class="dsec"><h5>RDS</h5><div class="rdscard"><div class="ps">${esc(R.ps || "········")}</div><div class="rt">${esc(R.radiotext || "")}</div>
+      ${R.pi ? `<span class="k">PI</span><span class="v">${esc(R.pi)}</span>` : ""}${R.pty ? `<span class="k">Programme</span><span class="v">${esc(R.pty)}</span>` : ""}
+      ${R.clock ? `<span class="k">Clock</span><span class="v">${esc(R.clock)}</span>` : ""}${R.af ? `<span class="k">Alt. freqs</span><span class="v">${esc(R.af)}</span>` : ""}
+      ${fl ? `<span class="k">Flags</span><span class="v chips">${fl}</span>` : ""}
+      ${(R.radiotext_history || []).length > 1 ? `<div class="hist">Earlier RadioText: ${(R.radiotext_history || []).slice(0, -1).reverse().map(esc).join(" · ")}</div>` : ""}</div></div>`;
+  }
+  for (const [kind, t] of Object.entries(J.tables || {})){
+    const cols = t.columns || [];
+    const prev = decState.rows[kind] || {};
+    const now = {};
+    const fmt = v => v == null ? "" : typeof v === "object" ? JSON.stringify(v) : typeof v === "number" && !Number.isInteger(v) ? (+v.toFixed(5)).toString() : String(v);
+    h += `<div class="dsec"><h5>${esc(kind)} · ${t.rows.length}</h5><table class="dtab"><tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}<th>msgs</th><th>last</th></tr>` +
+      t.rows.map(r => { now[r._key] = r._count; const fresh = prev[r._key] !== undefined && prev[r._key] !== r._count;
+        return `<tr class="${fresh ? "fresh" : ""}">${cols.map(c => `<td title="${esc(fmt(r[c]))}">${esc(fmt(r[c]))}</td>`).join("")}<td>${r._count}</td><td>${r._last ? tstr(r._last) : ""}</td></tr>`; }).join("") + `</table></div>`;
+    decState.rows[kind] = now;
+  }
+  const plain = (J.recent || []).filter(r => r.kind !== "rds" && !(J.tables || {})[r.kind]);
+  if (plain.length){
+    h += `<div class="dsec"><h5>messages</h5><div class="dlog">` + plain.slice(-60).reverse().map(r => {
+      const body = Object.entries(r).filter(([k]) => !["kind","t","n","seq","key_field"].includes(k)).map(([k, v]) => `${esc(k)}=${esc(typeof v === "object" ? JSON.stringify(v) : v)}`).join("  ");
+      return `<div><b>${r.t ? tstr(r.t) : ""} ${esc(r.kind)}</b>${body}</div>`; }).join("") + `</div></div>`;
+  }
+  $("dec").innerHTML = h || `<div class="empty">No records yet.</div>`;
+}
+$("dec-sel").onchange = e => { decState.pick = e.target.value; decState.rows = {}; };
+
+// ---------------------------------------------------------------- tidy up flowgraphs
+async function openPrune(){
+  $("prune-modal").style.display = "flex";
+  $("pr-list").innerHTML = "Loading…";
+  try{
+    const d = await getJ("api/flowgraphs/prune?older_than_h=" + $("pr-age").value + q());
+    $("pr-list").className = d.candidates.length ? "" : "empty";
+    $("pr-list").innerHTML = d.candidates.length ? d.candidates.map(c => `<label><input type="checkbox" value="${esc(c.name)}" checked><span><code>${esc(c.name)}</code> <small class="h-${esc(c.health||"")}">${esc(c.health||"")}</small><br><small>${esc(c.reason)} · ${c.age_h} h old</small></span></label>`).join("") : "Nothing to tidy - every saved flowgraph works, is recent, or is running.";
+    $("pr-arch").className = d.archived.length ? "" : "empty";
+    $("pr-arch").innerHTML = d.archived.length ? d.archived.slice(0, 80).map(a => `<div class="row"><code>${esc(a.name)}</code><small>${esc(a.archived)}</small><button class="btn" onclick="restoreFg('${esc(a.name)}')">restore</button></div>`).join("") : "Nothing archived yet.";
+  }catch(e){ $("pr-list").textContent = e.message; }
+}
+async function restoreFg(name){
+  try{ await postJ("api/flowgraphs/restore", {name}, sess); toast("Restored " + name); openPrune(); }catch(e){ toast(e.message); }
+}
+$("fg-tidy").onclick = openPrune;
+$("pr-go").onclick = async () => {
+  const names = Array.from(document.querySelectorAll("#pr-list input:checked")).map(c => c.value);
+  if (!names.length) return toast("Nothing selected");
+  try{ const r = await postJ("api/flowgraphs/prune", {names}, sess); toast(`Archived ${r.archived.length} flowgraph(s)`); $("fg-sel").dataset.sig = ""; openPrune(); }catch(e){ toast(e.message); }
+};
+
+async function pollFlowgraphs(){
+  const show = visible("graph");
+  if (!document.hidden && !show && fgTick++ % 3 === 0){   // other tab on a phone: just flag a build in progress
+    try{ const r = await getJ("api/flowgraphs?" + q().slice(1));
+      const f = r.flowgraphs.find(x => x.name === r.focus);
+      const b = $("b-graph"); if (b){ const on = !!(f && f.draft && Date.now()/1000 - f.mtime < 120); b.textContent = "✎"; b.style.display = on ? "block" : "none"; }
+    }catch(e){}
+  }
+  if (!document.hidden && show){
+    { const b = $("b-graph"); if (b) b.style.display = "none"; }
+    try{
+      const r = await getJ("api/flowgraphs?" + q().slice(1));
+      const sel = $("fg-sel"); const names = r.flowgraphs.map(f => f.name);
+      const focus = r.focus && names.includes(r.focus) ? r.focus : null;
+      fgState.focus = focus; fgState.focusWhat = r.focus_what || "";
+      const HSYM = {works:"✓ ", ran_ok:"✓ ", untested:"", ran_nothing:"∅ ", failed:"✗ ", invalid:"⚠ ", draft:"✎ "};
+      const sig = r.flowgraphs.map(f => f.name + ":" + f.health).join("|") + "#" + focus;
+      if (sel.dataset.sig !== sig){   // the AI's flowgraph is marked in the list; health shown as a symbol
+        sel.innerHTML = r.flowgraphs.map(f => { const n = f.name; return `<option value="${esc(n)}" title="${esc(f.health||"")}">${n === focus ? "● " : ""}${HSYM[f.health] || ""}${esc(n)}${n === focus ? " (AI)" : ""}</option>`; }).join("");
+        sel.dataset.sig = sig;
+      }
+      let want = fgState.name;
+      if (focus && fgState.follow) want = focus;
+      if (!want && names.length) want = names[0];
+      renderFgFollow(want);
+      if (want){
+        sel.value = want;
+        const info = r.flowgraphs.find(f => f.name === want) || {};
+        const key = want + "|" + info.mtime + "|" + info.running_job;
+        if (key !== fgState.key){
+          if (want !== fgState.name) fgState.vb = null;
+          fgState.name = want; fgState.key = key;
+          const d = await getJ("api/flowgraph?name=" + encodeURIComponent(want));
+          fgState.data = d; drawFlowgraph(d); renderFgNotes(d.ai_notes);
+        }
+      }
+    }catch(e){}
+  }
+  setTimeout(pollFlowgraphs, fgState.data && fgState.data.draft ? 900 : 1500);
+}
+$("fg-sel").onchange = e => { fgState.name = e.target.value; fgState.userPick = Date.now(); fgState.key = null; fgState.vb = null;
+  if (fgState.follow && e.target.value !== fgState.focus) setFollow(false); };
+function renderFgNotes(n){
+  const box = $("fg-notes");
+  if (!n || (!n.description && !(n.notes||[]).length)){ box.style.display = "none"; return; }
+  box.style.display = "";
+  const ns = n.notes || [];
+  box.querySelector("summary").innerHTML = "📝 " + (n.description ? esc(n.description.slice(0, 160)) : "AI notes") + (ns.length ? ` <span style="color:var(--faint)">· ${ns.length} note${ns.length>1?"s":""}</span>` : "");
+  box.querySelector(".fgn-body").innerHTML = (n.description && n.description.length > 160 ? `<div>${esc(n.description)}</div>` : "")
+    + ns.map(x => `<div><span class="k ${esc(x.kind)}">${esc(x.kind.replace("_"," "))}</span>${esc(x.text)} <span style="color:var(--faint)">${esc(x.when||"")}</span></div>`).join("");
+}
+function setFollow(on){
+  fgState.follow = !!on; try { localStorage.setItem("sdrpilot.fgfollow", on ? "1" : "0"); } catch(e) {}
+  if (on && fgState.focus){ fgState.name = fgState.focus; fgState.key = null; fgState.vb = null; }
+  renderFgFollow(fgState.name);
+}
+function renderFgFollow(shown){
+  $("fg-follow").classList.toggle("on", fgState.follow);
+  const box = $("fg-ai"), f = fgState.focus;
+  if (!f){ box.style.display = "none"; return; }
+  box.style.display = "flex";
+  const what = fgState.focusWhat || "working on";
+  box.innerHTML = shown === f
+    ? `<span class="dot ok"></span><span>The AI is ${esc(what)} this flowgraph${fgState.follow ? " - following it" : ""}.</span>`
+    : `<span class="dot warn"></span><span>The AI is ${esc(what)} <b>${esc(f)}</b>.</span><button class="btn" onclick="setFollow(true)">show it</button>`;
+}
+$("fg-follow").onclick = () => setFollow(!fgState.follow);
+$("fg-max").onclick = () => fgMax(!$("p-fg").classList.contains("maxed"));
+function fgMax(on){
+  if (!!on === $("p-fg").classList.contains("maxed")) return;
+  $("p-fg").classList.toggle("maxed", on); document.body.classList.toggle("fgmax", on);
+  $("fg-max").textContent = on ? "✕" : "⛶"; fgState.vb = null; fgState.key = null;
+  if (on && mobile() && document.body.dataset.tab !== "graph") setTab("graph");
+}
+$("fg-fit").onclick = () => { fgState.userMove = 0; if (fgState.full){ fgState.vb = fgState.full.slice(); $("fg-svg").setAttribute("viewBox", fgState.vb.join(" ")); } };
+(function panzoom(){   // mouse wheel, drag, and two-finger pinch
+  const wrap = $("fg-wrap"), svg = $("fg-svg"); const pts = new Map(); let start = null;
+  const apply = () => { fgState.userMove = Date.now(); svg.setAttribute("viewBox", fgState.vb.join(" ")); };
+  function zoomAt(cx, cy, k){ const r = svg.getBoundingClientRect(), vb = fgState.vb;
+    const mx = vb[0] + (cx - r.left) / r.width * vb[2], my = vb[1] + (cy - r.top) / r.height * vb[3];
+    fgState.vb = [mx - (mx - vb[0]) * k, my - (my - vb[1]) * k, vb[2] * k, vb[3] * k]; apply(); }
+  wrap.addEventListener("wheel", e => { if (!fgState.vb) return; e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY > 0 ? 1.15 : 1/1.15); }, {passive:false});
+  const snapshot = () => { const p = [...pts.values()]; const r = svg.getBoundingClientRect();
+    start = {vb: fgState.vb && fgState.vb.slice(), p: p.map(x => ({...x})), d: p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0, r}; };
+  wrap.addEventListener("pointerdown", e => { pts.set(e.pointerId, {x:e.clientX, y:e.clientY}); wrap.setPointerCapture(e.pointerId); snapshot(); });
+  wrap.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId) || !start || !start.vb) return;
+    pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    const p = [...pts.values()], r = start.r, vb = start.vb;
+    const sc = Math.max(vb[2] / r.width, vb[3] / r.height);
+    if (p.length === 1){
+      fgState.vb = [vb[0] - (p[0].x - start.p[0].x) * sc, vb[1] - (p[0].y - start.p[0].y) * sc, vb[2], vb[3]]; apply();
+    } else if (p.length >= 2 && start.d){
+      const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), k = start.d / Math.max(d, 1);
+      const cx0 = (start.p[0].x + start.p[1].x)/2, cy0 = (start.p[0].y + start.p[1].y)/2, cx = (p[0].x + p[1].x)/2, cy = (p[0].y + p[1].y)/2;
+      const mx = vb[0] + (cx0 - r.left) / r.width * vb[2], my = vb[1] + (cy0 - r.top) / r.height * vb[3];
+      const w = vb[2] * k, h = vb[3] * k;
+      fgState.vb = [mx - (cx - r.left) / r.width * w, my - (cy - r.top) / r.height * h, w, h]; apply();
+    }
+  });
+  const up = e => { pts.delete(e.pointerId); snapshot(); };
+  wrap.addEventListener("pointerup", up); wrap.addEventListener("pointercancel", up);
+})();
+
+
+// ---------------------------------------------------------------- layout: columns + full-width area, drag / resize / hide
+const LAY_KEY = "sdrpilot.layout.v1";
+const PRESETS_L = {
+  default:   {cols:[{w:1.6, p:["p-live","p-radio","p-sigs","p-gal"]}, {w:1, p:["p-task","chat-card","p-act"]}], bottom:["p-fg","p-dec","p-sys","p-runs","mon-card"], h:{}, hidden:[]},
+  chat:      {cols:[{w:1.1, p:["p-live","p-radio","p-sigs","p-task"]}, {w:1.3, p:["chat-card","p-act"]}], bottom:["p-fg","p-dec","p-runs","p-gal","p-sys","mon-card"], h:{"chat-card":760}, hidden:["p-sys"]},
+  radio:     {cols:[{w:2.2, p:["p-live","p-radio","p-sigs"]}, {w:1, p:["chat-card","p-task","p-act"]}], bottom:["p-dec","p-fg","p-gal","p-runs","p-sys","mon-card"], h:{"p-live":620}, hidden:[]},
+  flowgraph: {cols:[{w:1, p:["chat-card","p-task"]}, {w:1.9, p:["p-fg","p-live"]}], bottom:["p-dec","p-sigs","p-radio","p-gal","p-act","p-runs","p-sys","mon-card"], h:{"p-fg":640}, hidden:[]},
+  wide:      {cols:[{w:1.3, p:["p-live","p-radio","p-sigs","p-gal"]}, {w:1, p:["chat-card","p-task"]}, {w:1.4, p:["p-fg","p-dec","p-act"]}], bottom:["p-runs","p-sys","mon-card"], h:{"chat-card":680, "p-fg":560}, hidden:[]},
+};
+let LAY = null;
+const allPanels = () => Array.from(document.querySelectorAll("main .card[id]"));
+function layLoad(){
+  try { LAY = JSON.parse(localStorage.getItem(LAY_KEY) || "null"); } catch(e){ LAY = null; }
+  if (!LAY || !Array.isArray(LAY.cols)) LAY = JSON.parse(JSON.stringify(PRESETS_L.default));
+  LAY.h = LAY.h || {}; LAY.hidden = LAY.hidden || []; LAY.bottom = LAY.bottom || [];
+}
+function laySave(){ try { localStorage.setItem(LAY_KEY, JSON.stringify(LAY)); } catch(e){} }
+function layFromDom(){   // record what the user arranged
+  LAY.cols = Array.from(document.querySelectorAll("#cols > .zcol")).map(z => ({w: parseFloat(z.style.flexGrow) || 1, p: Array.from(z.children).filter(c => c.classList.contains("card")).map(c => c.id)}));
+  LAY.bottom = Array.from($("bottom").children).filter(c => c.classList.contains("card")).map(c => c.id);
+  laySave();
+}
+function applyLayout(){
+  const cards = Object.fromEntries(allPanels().map(c => [c.id, c]));
+  const cols = $("cols"); cols.innerHTML = "";
+  const placed = new Set();
+  LAY.cols.forEach((c, i) => {
+    if (i){ const s = document.createElement("div"); s.className = "vsplit"; s.title = "drag to change the column widths"; cols.appendChild(s); }
+    const z = document.createElement("div"); z.className = "zone zcol"; z.dataset.zone = "c" + i; z.style.flexGrow = c.w || 1; cols.appendChild(z);
+    (c.p || []).forEach(id => { if (cards[id] && !placed.has(id)){ z.appendChild(cards[id]); placed.add(id); } });
+  });
+  LAY.bottom.forEach(id => { if (cards[id] && !placed.has(id)){ $("bottom").appendChild(cards[id]); placed.add(id); } });
+  if (cards["p-radio"] && !placed.has("p-radio") && placed.has("p-live")){   // saved before the Radio panel existed
+    cards["p-live"].after(cards["p-radio"]); placed.add("p-radio"); }
+  Object.keys(cards).forEach(id => { if (!placed.has(id)) $("bottom").appendChild(cards[id]); });   // panels added in a newer version
+  radioPlace();
+  Object.values(cards).forEach(c => {
+    c.classList.toggle("lay-hidden", LAY.hidden.includes(c.id));
+    const hpx = LAY.h[c.id]; c.classList.toggle("sized", !!hpx); if (hpx) c.style.setProperty("--h", hpx + "px"); else c.style.removeProperty("--h");
+  });
+  document.body.classList.toggle("compact", !!LAY.compact);
+  ["s","l","xl"].forEach(t => document.body.classList.toggle("titles-" + t, (LAY.titles || "m") === t));
+  applyScale();
+  if (LAY.chatFs) $("chat-card").style.setProperty("--chat-fs", LAY.chatFs + "px"); else $("chat-card").style.removeProperty("--chat-fs");
+  document.querySelectorAll(".vsplit").forEach(splitter);
+  layMenuRender();
+  if (typeof fgState !== "undefined") fgState.key = null;
+}
+function decorate(){
+  allPanels().forEach(c => {
+    const h2 = c.querySelector("h2"); if (!h2 || h2.querySelector(".grip")) return;
+    const g = document.createElement("span"); g.className = "grip"; g.textContent = "⠿"; g.title = "drag to move this panel";
+    h2.insertBefore(g, h2.firstChild); g.addEventListener("pointerdown", e => dragStart(e, c));
+    const x = document.createElement("button"); x.className = "hidebtn"; x.textContent = "×"; x.title = "hide this panel (Layout menu brings it back)";
+    x.onclick = () => { if (!LAY.hidden.includes(c.id)) LAY.hidden.push(c.id); laySave(); applyLayout(); toast("Panel hidden - the Layout menu brings it back"); };
+    h2.appendChild(x);
+    const r = document.createElement("div"); r.className = "rsz"; r.title = "drag to resize · double-click for automatic height"; c.appendChild(r);
+    r.addEventListener("pointerdown", e => resizeStart(e, c, r));
+    r.addEventListener("dblclick", () => { delete LAY.h[c.id]; laySave(); applyLayout(); });
+    const grow = c.dataset.grow && document.getElementById(c.dataset.grow); if (grow) grow.classList.add("grow");
+  });
+}
+function panelTitle(c){ const h2 = c.querySelector("h2"); return h2 ? (Array.from(h2.childNodes).find(n => n.nodeType === 3 && n.textContent.trim()) || {textContent: c.id}).textContent.trim() : c.id; }
+// move: the panel follows the pointer, a placeholder shows where it will land
+function dragStart(e, card){
+  if (mobile()) return; e.preventDefault();
+  const r = card.getBoundingClientRect(), ph = document.createElement("div");
+  ph.className = "dropph"; ph.style.height = Math.min(r.height, 220) + "px";
+  card.parentNode.insertBefore(ph, card);
+  const Z = uiZoom();
+  card.classList.add("drag"); Object.assign(card.style, {width: r.width / Z + "px", height: Math.min(r.height, 320) / Z + "px", left: r.left / Z + "px", top: r.top / Z + "px"});
+  document.body.classList.add("dragging");
+  const dx = e.clientX - r.left, dy = e.clientY - r.top;
+  const move = ev => {
+    card.style.left = (ev.clientX - dx) / Z + "px"; card.style.top = (ev.clientY - dy) / Z + "px";
+    const under = document.elementFromPoint(ev.clientX, ev.clientY); const zone = under && under.closest(".zone");
+    if (!zone) return;
+    const sibs = Array.from(zone.children).filter(x => x.classList.contains("card") && x !== card && !x.classList.contains("lay-hidden"));
+    const before = sibs.find(x => { const b = x.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; });
+    if (before) zone.insertBefore(ph, before); else zone.appendChild(ph);
+    const R = 60;   // scroll the page while dragging near the edges
+    if (ev.clientY > innerHeight - R) scrollBy(0, 18); else if (ev.clientY < $("top").offsetHeight + R) scrollBy(0, -18);
+  };
+  const up = () => {
+    removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up);
+    card.classList.remove("drag"); ["width","height","left","top"].forEach(k => card.style[k] = "");
+    ph.parentNode.insertBefore(card, ph); ph.remove(); document.body.classList.remove("dragging");
+    layFromDom(); applyLayout();
+  };
+  addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
+}
+function resizeStart(e, card, handle){
+  if (mobile()) return; e.preventDefault();
+  const Z = uiZoom(), y0 = e.clientY, h0 = card.getBoundingClientRect().height / Z; handle.classList.add("on");
+  const move = ev => { const hpx = Math.max(110, Math.round(h0 + (ev.clientY - y0) / Z)); card.classList.add("sized"); card.style.setProperty("--h", hpx + "px"); LAY.h[card.id] = hpx; };
+  const up = () => { handle.classList.remove("on"); removeEventListener("pointermove", move); removeEventListener("pointerup", up); laySave(); if (card.id === "p-fg") fgState.key = null; };
+  addEventListener("pointermove", move); addEventListener("pointerup", up);
+}
+function splitter(s){
+  s.addEventListener("pointerdown", e => {
+    e.preventDefault(); const a = s.previousElementSibling, b = s.nextElementSibling; if (!a || !b) return;
+    const wa = a.getBoundingClientRect().width, wb = b.getBoundingClientRect().width, ga = parseFloat(a.style.flexGrow) || 1, gb = parseFloat(b.style.flexGrow) || 1, x0 = e.clientX;
+    s.classList.add("on");
+    const move = ev => { const d = ev.clientX - x0, na = Math.max(220, wa + d), nb = Math.max(220, wb - (na - wa)), tot = ga + gb;
+      a.style.flexGrow = (tot * na / (na + nb)).toFixed(3); b.style.flexGrow = (tot * nb / (na + nb)).toFixed(3); };
+    const up = () => { s.classList.remove("on"); removeEventListener("pointermove", move); removeEventListener("pointerup", up); layFromDom(); fgState.key = null; };
+    addEventListener("pointermove", move); addEventListener("pointerup", up);
+  });
+}
+function layMenu(open){ $("lay-menu").hidden = !open; if (open) layMenuRender(); }
+function layMenuRender(){
+  if (!LAY) return;
+  const hid = allPanels().filter(c => LAY.hidden.includes(c.id));
+  $("lm-hidden").innerHTML = hid.length ? hid.map(c => `<button class="btn" onclick="layShow('${c.id}')">show ${esc(panelTitle(c))}</button>`).join("") : '<span style="color:var(--faint)">none</span>';
+  $("lm-compact").checked = !!LAY.compact;
+  $("lm-titles").value = LAY.titles || "m";
+  $("lm-fs").textContent = (LAY.chatFs || 14) + " px";
+  $("lm-tools").value = LAY.toolStyle || "cards";
+}
+function layShow(id){ LAY.hidden = LAY.hidden.filter(x => x !== id); laySave(); applyLayout(); const c = $(id); if (c) c.scrollIntoView({behavior:"smooth", block:"center"}); }
+function layPreset(name){ const keep = {compact: LAY.compact, chatFs: LAY.chatFs, uiScale: LAY.uiScale, titles: LAY.titles, toolStyle: LAY.toolStyle}; LAY = {...JSON.parse(JSON.stringify(PRESETS_L[name])), ...keep}; if (name === "chat" && !LAY.chatFs) LAY.chatFs = 16; laySave(); applyLayout(); }
+function layCols(n){
+  n = Math.max(1, Math.min(4, n));
+  const ids = LAY.cols.flatMap(c => c.p); const per = Math.ceil(ids.length / n);
+  LAY.cols = Array.from({length: n}, (_, i) => ({w: 1, p: ids.slice(i * per, (i + 1) * per)}));
+  if (n === 2 && LAY.cols[0]) LAY.cols[0].w = 1.5;
+  laySave(); applyLayout();
+}
+// interface size: "auto" scales up on big / high-resolution screens (e.g. 1.25 at 2560x1440, 1.75 at 4K)
+const SCALES = ["auto", "0.9", "1", "1.1", "1.25", "1.5", "1.75", "2"];
+function autoScale(){ const s = Math.min(innerWidth / 2000, innerHeight / 1100); return s <= 1 ? 1 : Math.min(1.75, Math.round(s * 20) / 20); }
+function uiZoom(){ return parseFloat(document.documentElement.style.zoom) || 1; }
+function applyScale(){
+  const v = (LAY && LAY.uiScale) || "auto";
+  const z = mobile() ? 1 : (v === "auto" ? autoScale() : parseFloat(v) || 1);
+  document.documentElement.style.setProperty("--uiz", String(z));
+  if (Math.abs(uiZoom() - z) > 0.001){ document.documentElement.style.zoom = z === 1 ? "" : String(z); layout(); if (typeof fgState !== "undefined") fgState.key = null; }
+  const sel = $("lm-scale");
+  if (sel && !sel.options.length) sel.innerHTML = SCALES.map(s => `<option value="${s}">${s === "auto" ? "auto (for this screen)" : Math.round(parseFloat(s) * 100) + "%"}</option>`).join("");
+  if (sel) { sel.value = v; if (v === "auto") sel.options[0].textContent = `auto (${Math.round(z * 100)}% here)`; }
+}
+addEventListener("resize", () => { if (LAY && (LAY.uiScale || "auto") === "auto") applyScale(); });
+function layScale(v){ LAY.uiScale = v; laySave(); applyScale(); }
+function layTitles(v){ LAY.titles = v; laySave(); applyLayout(); }
+function layCompact(on){ LAY.compact = !!on; laySave(); applyLayout(); }
+function layReset(){ LAY = JSON.parse(JSON.stringify(PRESETS_L.default)); document.documentElement.style.zoom = ""; document.documentElement.style.setProperty("--uiz", "1"); laySave(); applyLayout(); toast("Layout reset"); }
+function layToolStyle(v){ LAY.toolStyle = v; laySave(); lastChatKey = ""; if (lastState) renderChat(lastState); }
+function chatFont(d){ LAY.chatFs = Math.max(11, Math.min(24, (LAY.chatFs || (mobile() ? 15 : 14)) + d)); laySave(); applyLayout(); scrollChat(true); }
+$("layout-btn").onclick = () => layMenu($("lay-menu").hidden);
+document.addEventListener("pointerdown", e => { const m = $("lay-menu"); if (!m.hidden && !m.contains(e.target) && !e.target.closest("#layout-btn")) layMenu(false); });
+layLoad(); decorate(); applyLayout();
+addEventListener("keydown", e => { if (e.key === "Escape"){ closeSettings(); $("img-modal").style.display = "none"; layMenu(false); fgMax(false); } });
+try { const t = localStorage.getItem("sdrpilot.tab"); if (t) setTab(t); } catch(e) {}
+layout();
+pollSessions(); poll(); live(); signals(); radioPoll(); pollFlowgraphs(); pollDecoded();
+</script>
+</body>
+</html>

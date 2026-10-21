@@ -1,0 +1,69 @@
+{
+ "_about": "APRS / AX.25 packet radio decoder: NBFM receiver -> AFSK1200 (Bell 202) demod + HDLC deframer (sp_afsk1200_decoder) -> AX.25 parser that prints SOURCE>DEST,PATH:info for every CRC-valid frame (written to aprs.jsonl). 144.390 MHz is APRS in North America (144.800 in Europe).",
+ "use_when": "APRS beacons, AX.25 / 1200-baud packet radio, digipeaters, iGates, balloon/satellite AFSK telemetry",
+ "keywords": [
+  "aprs",
+  "ax.25",
+  "ax25",
+  "packet radio",
+  "afsk",
+  "1200 baud",
+  "144.39",
+  "144.390",
+  "digipeater",
+  "bell 202"
+ ],
+ "variables_help": {
+  "chan_freq": "frequency in Hz (144.39e6 = APRS in North America)",
+  "deviation": "FM deviation (3e3 typical for packet)"
+ },
+ "spec": {
+  "name": "aprs_afsk1200",
+  "title": "APRS / AX.25 decoder",
+  "description": "sp_nbfm_receiver -> sp_afsk1200_decoder -> AX.25 parser",
+  "variables": {
+   "chan_freq": 144390000.0,
+   "deviation": 3000.0
+  },
+  "imports": [],
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source"
+   },
+   {
+    "name": "rx",
+    "type": "sp_nbfm_receiver",
+    "params": {
+     "samp_rate": "samp_rate",
+     "offset": "chan_freq - center_freq",
+     "deviation": "deviation",
+     "channel_bw": "16e3",
+     "audio_rate": "48000",
+     "squelch_db": "-200",
+     "audio_bw": "5e3"
+    }
+   },
+   {
+    "name": "modem",
+    "type": "sp_afsk1200_decoder",
+    "params": {
+     "audio_rate": "48000"
+    }
+   },
+   {
+    "name": "ax25",
+    "type": "epy_block",
+    "params": {
+     "_source_file": "ax25_parser_block.py",
+     "out_file": "'aprs.jsonl'"
+    }
+   }
+  ],
+  "connections": [
+   "src -> rx",
+   "rx -> modem",
+   "modem:frames -> ax25:frames"
+  ]
+ }
+}

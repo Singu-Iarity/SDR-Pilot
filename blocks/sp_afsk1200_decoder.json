@@ -1,0 +1,109 @@
+{
+ "description": "AFSK1200 / Bell 202 packet decoder (APRS, AX.25 packet radio): FM audio (e.g. sp_nbfm_receiver out) at audio_rate -> 1200/2200 Hz tone discriminator -> clock recovery -> NRZI decode -> HDLC deframer (CRC-checked). Out: AX.25 frames as PDUs (message) - parse them with the ax25 parser in the aprs_afsk1200 recipe.",
+ "keywords": [
+  "aprs",
+  "afsk",
+  "ax.25",
+  "ax25",
+  "packet radio",
+  "bell 202",
+  "1200 baud",
+  "144.39"
+ ],
+ "parameters": {
+  "audio_rate": 48000
+ },
+ "variables": {
+  "d1": "max(1, int(audio_rate // 9600))",
+  "r": "audio_rate/d1"
+ },
+ "imports": [
+  "import math"
+ ],
+ "blocks": [
+  {
+   "name": "x",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "fcc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, audio_rate, 1200, 400)",
+    "center_freq": "1700",
+    "samp_rate": "audio_rate"
+   }
+  },
+  {
+   "name": "fm",
+   "type": "analog_quadrature_demod_cf",
+   "params": {
+    "gain": "r/(2*math.pi*500)"
+   }
+  },
+  {
+   "name": "sync",
+   "type": "digital_symbol_sync_xx",
+   "params": {
+    "type": "ff",
+    "ted_type": "digital.TED_MUELLER_AND_MULLER",
+    "loop_bw": 0.03,
+    "damping": 1.0,
+    "ted_gain": 1.0,
+    "max_dev": 0.02,
+    "osps": 1,
+    "resamp_type": "digital.IR_MMSE_8TAP",
+    "sps": "r/1200"
+   }
+  },
+  {
+   "name": "slicer",
+   "type": "digital_binary_slicer_fb"
+  },
+  {
+   "name": "nrzi",
+   "type": "digital_diff_decoder_bb",
+   "params": {
+    "coding": "digital.DIFF_DIFFERENTIAL",
+    "modulus": "2"
+   }
+  },
+  {
+   "name": "inv",
+   "type": "digital_map_bb",
+   "params": {
+    "map": "[1, 0]"
+   }
+  },
+  {
+   "name": "hdlc",
+   "type": "digital_hdlc_deframer_bp",
+   "params": {
+    "min": "17",
+    "max": "400"
+   }
+  }
+ ],
+ "connections": [
+  "x -> fm",
+  "fm -> sync",
+  "sync -> slicer",
+  "slicer -> nrzi",
+  "nrzi -> inv",
+  "inv -> hdlc"
+ ],
+ "inputs": [
+  {
+   "to": "x:0",
+   "type": "float",
+   "label": "audio"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "hdlc:out",
+   "type": "message",
+   "label": "frames",
+   "optional": true
+  }
+ ],
+ "name": "sp_afsk1200_decoder"
+}

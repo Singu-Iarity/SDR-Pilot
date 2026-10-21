@@ -1,0 +1,109 @@
+{
+ "description": "Narrowband FM voice receiver (ham FM, NOAA weather radio, FRS/GMRS, marine, APRS audio): channel at `offset` -> optional power squelch (squelch_db, -200 = open) -> FM demod -> audio_bw low-pass (4 kHz voice; 5 kHz for AFSK/data) -> audio at audio_rate.",
+ "keywords": [
+  "nbfm",
+  "fm voice",
+  "weather radio",
+  "noaa",
+  "162",
+  "ham",
+  "repeater",
+  "frs",
+  "gmrs",
+  "marine",
+  "aprs",
+  "audio"
+ ],
+ "parameters": {
+  "samp_rate": 2000000.0,
+  "offset": 0,
+  "deviation": 5000.0,
+  "channel_bw": 16000.0,
+  "audio_rate": 48000,
+  "squelch_db": -200,
+  "audio_bw": 4000.0
+ },
+ "variables": {
+  "d1": "max(1, int(samp_rate // (4*channel_bw)))",
+  "qrate": "samp_rate/d1"
+ },
+ "imports": [
+  "import math"
+ ],
+ "blocks": [
+  {
+   "name": "chan",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, samp_rate, (channel_bw)/2, (channel_bw)/4)",
+    "center_freq": "offset",
+    "samp_rate": "samp_rate"
+   }
+  },
+  {
+   "name": "sq",
+   "type": "analog_pwr_squelch_xx",
+   "params": {
+    "type": "complex",
+    "threshold": "squelch_db",
+    "alpha": "1e-3",
+    "ramp": "0",
+    "gate": "False"
+   }
+  },
+  {
+   "name": "fm",
+   "type": "analog_quadrature_demod_cf",
+   "params": {
+    "gain": "qrate/(2*math.pi*deviation)"
+   }
+  },
+  {
+   "name": "lpf",
+   "type": "low_pass_filter",
+   "params": {
+    "type": "fir_filter_fff",
+    "decim": "1",
+    "interp": "1",
+    "gain": "1",
+    "samp_rate": "qrate",
+    "cutoff_freq": "audio_bw",
+    "width": "audio_bw/4",
+    "win": "window.WIN_HAMMING",
+    "beta": "6.76"
+   }
+  },
+  {
+   "name": "rs",
+   "type": "mmse_resampler_xx",
+   "params": {
+    "type": "float",
+    "phase_shift": "0",
+    "resamp_ratio": "qrate/audio_rate"
+   }
+  }
+ ],
+ "connections": [
+  "chan -> sq",
+  "sq -> fm",
+  "fm -> lpf",
+  "lpf -> rs"
+ ],
+ "inputs": [
+  {
+   "to": "chan:0",
+   "type": "complex",
+   "label": "iq"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "rs:0",
+   "type": "float",
+   "label": "audio"
+  }
+ ],
+ "name": "sp_nbfm_receiver"
+}

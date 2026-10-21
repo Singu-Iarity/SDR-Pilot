@@ -1,0 +1,105 @@
+{
+ "description": "AM receiver (airband 118-137 MHz, AM broadcast, shortwave): channel at `offset` -> envelope -> DC block -> low-pass -> AGC -> audio at audio_rate.",
+ "keywords": [
+  "am",
+  "airband",
+  "aviation",
+  "tower",
+  "shortwave",
+  "envelope"
+ ],
+ "parameters": {
+  "samp_rate": 2000000.0,
+  "offset": 0,
+  "channel_bw": 10000.0,
+  "audio_rate": 48000
+ },
+ "variables": {
+  "d1": "max(1, int(samp_rate // (4*channel_bw)))",
+  "qrate": "samp_rate/d1"
+ },
+ "imports": [],
+ "blocks": [
+  {
+   "name": "chan",
+   "type": "freq_xlating_fir_filter_xxx",
+   "params": {
+    "type": "ccc",
+    "decim": "d1",
+    "taps": "firdes.low_pass(1, samp_rate, (channel_bw)/2, (channel_bw)/4)",
+    "center_freq": "offset",
+    "samp_rate": "samp_rate"
+   }
+  },
+  {
+   "name": "mag",
+   "type": "blocks_complex_to_mag"
+  },
+  {
+   "name": "dc",
+   "type": "dc_blocker_xx",
+   "params": {
+    "type": "ff",
+    "length": "256",
+    "long_form": "True"
+   }
+  },
+  {
+   "name": "lpf",
+   "type": "low_pass_filter",
+   "params": {
+    "type": "fir_filter_fff",
+    "decim": "1",
+    "interp": "1",
+    "gain": "1",
+    "samp_rate": "qrate",
+    "cutoff_freq": "channel_bw/2",
+    "width": "channel_bw/8",
+    "win": "window.WIN_HAMMING",
+    "beta": "6.76"
+   }
+  },
+  {
+   "name": "agc",
+   "type": "analog_agc_xx",
+   "params": {
+    "type": "float",
+    "rate": "1e-3",
+    "reference": "0.3",
+    "gain": "1",
+    "max_gain": "65536"
+   }
+  },
+  {
+   "name": "rs",
+   "type": "mmse_resampler_xx",
+   "params": {
+    "type": "float",
+    "phase_shift": "0",
+    "resamp_ratio": "qrate/audio_rate"
+   }
+  }
+ ],
+ "connections": [
+  "chan -> mag",
+  "mag -> dc",
+  "dc -> lpf",
+  "lpf -> agc",
+  "agc -> rs"
+ ],
+ "inputs": [
+  {
+   "to": "chan:0",
+   "type": "complex",
+   "label": "iq"
+  }
+ ],
+ "outputs": [
+  {
+   "from": "rs:0",
+   "type": "float",
+   "label": "audio"
+  }
+ ],
+ "name": "sp_am_receiver"
+}

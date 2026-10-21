@@ -1,0 +1,85 @@
+{
+ "_about": "FM broadcast receiver with RDS: picks a station, writes its audio to fm_audio.wav and decodes RDS (station name, RadioText, PI, programme type) using SDR Pilot's sp_wbfm_receiver + sp_rds_decoder blocks (gr-rds). RDS appears in the run log as SPDATA lines and in the dashboard's Decoded view.",
+ "use_when": "listening to / recording an FM broadcast station, or reading its RDS station name and RadioText",
+ "keywords": [
+  "rds",
+  "rbds",
+  "radiotext",
+  "fm broadcast",
+  "fm station",
+  "radio station",
+  "broadcast fm",
+  "88-108",
+  "station name"
+ ],
+ "variables_help": {
+  "station": "station frequency in Hz (e.g. 100.1e6). Default: the frequency the radio is tuned to. For a HackRF/zero-IF radio tune ~250 kHz away from the station and set station, so it isn't on the DC spike",
+  "audio_rate": "WAV sample rate",
+  "pty_locale": "1 = North America (RBDS), 0 = Europe",
+  "mpx_rate": "sp_wbfm_receiver's MPX output rate (fixed 240 kS/s)"
+ },
+ "spec": {
+  "name": "fm_rds_receiver",
+  "title": "FM broadcast + RDS",
+  "description": "sp_wbfm_receiver -> WAV audio; FM multiplex -> sp_rds_decoder -> sp_data_sink (decoded RDS)",
+  "variables": {
+   "station": "center_freq",
+   "audio_rate": 48000,
+   "pty_locale": 1,
+   "mpx_rate": 240000.0
+  },
+  "imports": [],
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source"
+   },
+   {
+    "name": "fm",
+    "type": "sp_wbfm_receiver",
+    "params": {
+     "samp_rate": "samp_rate",
+     "offset": "station - center_freq",
+     "audio_rate": "audio_rate",
+     "tau": "75e-6"
+    }
+   },
+   {
+    "name": "wav",
+    "type": "blocks_wavfile_sink",
+    "params": {
+     "file": "'fm_audio.wav'",
+     "nchan": "1",
+     "samp_rate": "int(audio_rate)",
+     "format": "blocks.FORMAT_WAV",
+     "bits_per_sample1": "blocks.FORMAT_PCM_16",
+     "append": "False"
+    }
+   },
+   {
+    "name": "rds",
+    "type": "sp_rds_decoder",
+    "params": {
+     "mpx_rate": "mpx_rate",
+     "pty_locale": "pty_locale"
+    }
+   },
+   {
+    "name": "out",
+    "type": "sp_data_sink",
+    "params": {
+     "kind": "'rds'",
+     "key": "''"
+    },
+    "note": "decoded RDS -> SPDATA records (job summary 'decoded' + dashboard Decoded view)"
+   }
+  ],
+  "connections": [
+   "src -> fm",
+   "fm:0 -> wav",
+   "fm:1 -> rds",
+   "rds:rds -> out:in"
+  ]
+ },
+ "requires": []
+}

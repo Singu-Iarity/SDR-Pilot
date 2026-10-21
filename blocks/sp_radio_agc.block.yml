@@ -1,0 +1,62 @@
+id: sp_radio_agc
+label: SDR Pilot radio AGC
+category: '[SDR Pilot]/Radio control'
+flags: [python]
+
+parameters:
+-   id: target_db
+    label: Target level (dB)
+    dtype: real
+    default: '20'
+-   id: param
+    label: Gain parameter
+    dtype: string
+    default: gain
+-   id: kp
+    label: dB of gain per dB of error
+    dtype: real
+    default: '0.5'
+-   id: deadband_db
+    label: Deadband (dB)
+    dtype: real
+    default: '3'
+-   id: max_step
+    label: Max step (dB)
+    dtype: real
+    default: '10'
+-   id: min_gain
+    label: Min gain
+    dtype: real
+    default: '0'
+-   id: max_gain
+    label: Max gain
+    dtype: real
+    default: '60'
+-   id: interval
+    label: Interval (s)
+    dtype: real
+    default: '1.0'
+-   id: settle
+    label: Settle time (s)
+    dtype: real
+    default: '1.5'
+
+inputs:
+-   domain: stream
+    dtype: float
+
+templates:
+    imports: |-
+        import os, sys; sys.path[:0] = [p for p in (os.environ.get('GRC_HIER_PATH', ''), os.path.join(os.environ.get('XDG_STATE_HOME') or (os.path.join(os.environ.get('APPDATA', ''), '.local', 'state') if os.name == 'nt' else os.path.expanduser('~/.local/state')), 'gnuradio'), os.path.expanduser('~/.grc_gnuradio')) if p and os.path.isdir(p) and p not in sys.path]
+        import sp_radio_impl
+    make: sp_radio_impl.radio_agc(target_db=${target_db}, param=${param}, kp=${kp}, deadband_db=${deadband_db}, max_step=${max_step}, min_gain=${min_gain}, max_gain=${max_gain}, interval=${interval}, settle=${settle})
+    callbacks:
+    - set_target_db(${target_db})
+
+documentation: |-
+    Keeps a fading signal at a good level by adjusting the SDR's gain: input = the signal's level or SNR in dB
+    (e.g. complex_to_mag_squared -> moving average -> nlog10_ff(10)). When the average is outside Target +/- Deadband,
+    gain changes by kp x error (at most Max step, within Min..Max gain), then it waits Settle time before measuring
+    again. Gain parameter: 'gain' (SDR Pilot's overall gain) or one stage (lnaGain, vgaGain...).
+
+file_format: 1

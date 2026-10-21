@@ -1,0 +1,2 @@
+mcp>=1.2
+# GNU Radio (with gr-zeromq), numpy and PyYAML come from radioconda

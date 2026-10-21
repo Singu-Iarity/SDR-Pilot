@@ -1,0 +1,66 @@
+id: sp_convert
+label: SDR Pilot convert
+category: '[SDR Pilot]'
+flags: [python]
+
+parameters:
+-   id: in_type
+    label: Input type
+    dtype: enum
+    default: complex
+    options: [complex, float, int, short, byte]
+    option_labels: [Complex, Float, Int, Short, Byte]
+    hide: part
+-   id: out_type
+    label: Output type
+    dtype: enum
+    default: float
+    options: [complex, float, int, short, byte]
+    option_labels: [Complex, Float, Int, Short, Byte]
+    hide: part
+-   id: mode
+    label: Complex -> real
+    dtype: enum
+    default: mag
+    options: [mag, mag_squared, real, imag, arg]
+    option_labels: [Magnitude, Magnitude squared, Real (I), Imaginary (Q), Phase (radians)]
+    hide: ${ ('part' if in_type == 'complex' and out_type != 'complex' else 'all') }
+-   id: scale
+    label: Scale
+    dtype: float
+    default: '1.0'
+    hide: part
+-   id: vlen
+    label: Vector length
+    dtype: int
+    default: '1'
+    hide: ${ ('part' if vlen != 1 else 'all') }
+
+inputs:
+-   domain: stream
+    dtype: ${ in_type }
+    vlen: ${ vlen }
+
+outputs:
+-   domain: stream
+    dtype: ${ out_type }
+    vlen: ${ vlen }
+
+asserts:
+- ${ vlen > 0 }
+
+templates:
+    imports: |-
+        import os, sys; sys.path[:0] = [p for p in (os.environ.get('GRC_HIER_PATH', ''), os.path.join(os.environ.get('XDG_STATE_HOME') or (os.path.join(os.environ.get('APPDATA', ''), '.local', 'state') if os.name == 'nt' else os.path.expanduser('~/.local/state')), 'gnuradio'), os.path.expanduser('~/.grc_gnuradio')) if p and os.path.isdir(p) and p not in sys.path]
+        import sp_convert_impl
+    make: sp_convert_impl.convert('${in_type}', '${out_type}', mode='${mode}', scale=${scale}, vlen=${vlen})
+
+documentation: |-
+    Converts a stream from one sample type to another, so any output can feed any input.
+    complex -> float/int/short/byte: 'mode' picks magnitude (envelope, AM/OOK), magnitude squared (power),
+    real (I), imaginary (Q) or phase. Anything -> complex: the value becomes the real part (Q = 0).
+    float -> short/int/byte: multiplied by 'scale' then rounded (e.g. scale 32767 for audio to 16-bit);
+    short/int/byte -> float: multiplied by 'scale' (e.g. 1/32768). Same type in and out: just scales.
+    Bytes are unsigned 0..255 (bits from a slicer arrive as 0/1).
+
+file_format: 1

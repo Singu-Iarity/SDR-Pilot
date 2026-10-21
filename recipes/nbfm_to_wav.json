@@ -1,0 +1,73 @@
+{
+ "_about": "Narrowband FM receiver to WAV (e.g. NOAA weather radio 162.400-162.550 MHz).",
+ "spec": {
+  "name": "nbfm_rx",
+  "title": "NBFM receiver to WAV",
+  "variables": {
+   "chan_freq": 162550000.0,
+   "decim": 40,
+   "audio_rate": 25000
+  },
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source"
+   },
+   {
+    "name": "chan",
+    "type": "freq_xlating_fir_filter_xxx",
+    "params": {
+     "type": "ccc",
+     "decim": "decim",
+     "taps": "firdes.low_pass(1, samp_rate, 10e3, 5e3)",
+     "center_freq": "chan_freq - center_freq",
+     "samp_rate": "samp_rate"
+    }
+   },
+   {
+    "name": "fm",
+    "type": "analog_nbfm_rx",
+    "params": {
+     "audio_rate": "audio_rate",
+     "quad_rate": "int(samp_rate/decim)",
+     "tau": "75e-6",
+     "max_dev": "5e3"
+    }
+   },
+   {
+    "name": "wav",
+    "type": "blocks_wavfile_sink",
+    "params": {
+     "file": "'nbfm_162550.wav'",
+     "nchan": 1,
+     "samp_rate": "audio_rate"
+    }
+   }
+  ],
+  "connections": [
+   "src -> chan",
+   "chan -> fm",
+   "fm -> wav"
+  ]
+ },
+ "use_when": "listening to / recording narrowband FM voice or tones (NOAA weather radio, ham FM, FRS/GMRS, marine)",
+ "keywords": [
+  "nbfm",
+  "fm",
+  "voice",
+  "weather radio",
+  "noaa",
+  "162",
+  "audio",
+  "repeater",
+  "2m",
+  "70cm",
+  "frs",
+  "gmrs"
+ ],
+ "variables_help": {
+  "chan_freq": "frequency to listen to in Hz",
+  "decim": "decimation to the demod rate",
+  "audio_rate": "WAV sample rate"
+ }
+}

@@ -1,0 +1,56 @@
+id: sp_radio_param_from_stream
+label: SDR Pilot radio parameter from stream
+category: '[SDR Pilot]/Radio control'
+flags: [python]
+
+parameters:
+-   id: param
+    label: Parameter
+    dtype: string
+    default: gain
+-   id: value
+    label: Value (expression of x)
+    dtype: string
+    default: x
+-   id: interval
+    label: Interval (s)
+    dtype: real
+    default: '1.0'
+-   id: reduce
+    label: x is the
+    dtype: enum
+    options: [mean, max, min, last]
+    default: mean
+-   id: deadband
+    label: Deadband
+    dtype: real
+    default: '0'
+-   id: minimum
+    label: Minimum
+    dtype: string
+    default: ''
+-   id: maximum
+    label: Maximum
+    dtype: string
+    default: ''
+-   id: update_var
+    label: Update flowgraph variable
+    dtype: string
+    default: ''
+
+inputs:
+-   domain: stream
+    dtype: float
+
+templates:
+    imports: |-
+        import os, sys; sys.path[:0] = [p for p in (os.environ.get('GRC_HIER_PATH', ''), os.path.join(os.environ.get('XDG_STATE_HOME') or (os.path.join(os.environ.get('APPDATA', ''), '.local', 'state') if os.name == 'nt' else os.path.expanduser('~/.local/state')), 'gnuradio'), os.path.expanduser('~/.grc_gnuradio')) if p and os.path.isdir(p) and p not in sys.path]
+        import sp_radio_impl
+    make: sp_radio_impl.radio_param_from_stream(param=${param}, value=${value}, interval=${interval}, reduce=${reduce}, deadband=${deadband}, minimum=${minimum}, maximum=${maximum}, update_var=${update_var})
+
+documentation: |-
+    Drives one radio parameter from a float stream: every Interval seconds the stream's mean / max / min / last value
+    becomes x and Parameter is set to Value (an expression of x). Deadband: only send when x moved more than this.
+    Parameters: center_freq, sample_rate, gain, agc, or any SDRangel device setting (lnaGain, vgaGain, ...).
+
+file_format: 1

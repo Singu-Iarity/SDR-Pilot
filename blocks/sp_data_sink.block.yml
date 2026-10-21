@@ -1,0 +1,33 @@
+id: sp_data_sink
+label: SDR Pilot data sink
+category: '[SDR Pilot]'
+flags: [python]
+
+parameters:
+-   id: kind
+    label: Kind
+    dtype: string
+    default: data
+-   id: key
+    label: Key field
+    dtype: string
+    default: ''
+
+inputs:
+-   domain: message
+    id: in
+    optional: true
+
+templates:
+    imports: |-
+        import os, sys; sys.path[:0] = [p for p in (os.environ.get('GRC_HIER_PATH', ''), os.path.join(os.environ.get('XDG_STATE_HOME') or (os.path.join(os.environ.get('APPDATA', ''), '.local', 'state') if os.name == 'nt' else os.path.expanduser('~/.local/state')), 'gnuradio'), os.path.expanduser('~/.grc_gnuradio')) if p and os.path.isdir(p) and p not in sys.path]
+        import sp_data_sink_impl
+    make: sp_data_sink_impl.data_sink(kind=${kind}, key=${key})
+
+documentation: |-
+    Prints every message it receives as one JSON line ("SPDATA {...}") that SDR Pilot collects: the job's
+    decoded.jsonl, the job summary the AI reads, and the dashboard's Decoded view. Connect any decoder's message
+    output (gr-rds parser 'out', gr-adsb decoder 'decoded', PDUs, dict messages) to 'in'.
+    kind: rds / adsb / aprs / packet / ... ; key: field naming one station or device (e.g. icao) for a table view.
+
+file_format: 1

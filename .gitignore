@@ -1,0 +1,21 @@
+# your data and settings - never committed
+workspace/
+workspace_selftest/
+logs/*
+!logs/.gitkeep
+sdrpilot_config.local.json
+launcher.json
+*.log
+
+# build outputs
+__pycache__/
+*.pyc
+launcher/target/
+installer/dist/
+installer/SDR-Pilot-Setup-*.exe
+
+# secrets that must never be pushed
+*.key
+*.pem
+.env
+access_key.txt

@@ -1,0 +1,71 @@
+{
+ "_about": "Generic OOK/ASK decoder: channel filter -> magnitude -> pulse decoder that measures pulse/gap widths, guesses PWM / PPM / Manchester and prints the bits of each transmission (like rtl_433's analyzer). For key fobs, doorbells, weather and tire sensors, garage remotes (only your own devices).",
+ "use_when": "an on/off keyed burst signal (analyze_signal says OOK/ASK), usually 315 / 433.92 / 868 MHz",
+ "keywords": [
+  "ook",
+  "ask",
+  "433",
+  "315",
+  "key fob",
+  "remote",
+  "doorbell",
+  "weather sensor",
+  "tpms",
+  "garage",
+  "pwm"
+ ],
+ "variables_help": {
+  "chan_freq": "absolute centre frequency of the signal in Hz",
+  "chan_bw": "channel filter width in Hz (100-300 kHz suits most OOK devices)",
+  "decim": "decimation to ~250 kS/s for the pulse decoder"
+ },
+ "spec": {
+  "name": "ook_burst_decoder",
+  "title": "OOK burst decoder",
+  "description": "xlating filter -> magnitude -> OOK pulse decoder",
+  "variables": {
+   "chan_freq": 433920000.0,
+   "chan_bw": 200000.0,
+   "decim": "max(1, int(samp_rate // 250e3))"
+  },
+  "imports": [],
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source"
+   },
+   {
+    "name": "chan",
+    "type": "freq_xlating_fir_filter_xxx",
+    "params": {
+     "type": "ccc",
+     "decim": "decim",
+     "taps": "firdes.low_pass(1, samp_rate, chan_bw/2, chan_bw/4)",
+     "center_freq": "chan_freq - center_freq",
+     "samp_rate": "samp_rate"
+    }
+   },
+   {
+    "name": "mag",
+    "type": "blocks_complex_to_mag"
+   },
+   {
+    "name": "ook",
+    "type": "epy_block",
+    "params": {
+     "_source_file": "ook_pulse_block.py",
+     "samp_rate": "samp_rate/decim",
+     "threshold_db": 12.0,
+     "end_gap_ms": 12.0,
+     "min_pulses": 8,
+     "out_file": "'ook_bursts.jsonl'"
+    }
+   }
+  ],
+  "connections": [
+   "src -> chan",
+   "chan -> mag",
+   "mag -> ook"
+  ]
+ }
+}

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="sdrpilot-key" content="__SDRPILOT_KEY__">
+<title>SDR Pilot instances</title>
+<style>
+:root{
+  --bg:#0b0d12; --panel:#12151d; --panel2:#171b25; --line:#242a37; --text:#e6e8ee; --dim:#8a91a3; --faint:#5b6273;
+  --accent:#4fe0a8; --accent2:#7aa8ff; --warn:#ffb347; --bad:#ff6b81; --ai:#c9a7ff;
+  --mono:"Cascadia Mono","JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --ui:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--ui)}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+header b{font:600 15px var(--mono);letter-spacing:.18em;color:var(--accent)}
+header span.sub{color:var(--dim)}
+header .sp{flex:1}
+a{color:var(--accent2)}
+.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{border-color:#3a4152}
+.btn.warn{border-color:#6b4a17;color:#ffd68a} .btn.bad{border-color:#6b2a35;color:#ffb3c0} .btn.go{border-color:#2e6b4f;color:#9ff0c8}
+.btn:disabled{opacity:.45;cursor:default}
+main{padding:16px 18px 40px;max-width:1500px;margin:0 auto}
+.summary{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 14px;color:var(--dim)}
+.summary b{color:var(--text);font-family:var(--mono)}
+.summary .warn{color:var(--warn)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.card.ended{opacity:.55}
+.card.self{border-color:#2e4a6b}
+.top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kind{font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:#1d2a44;color:#9cc2ff}
+.kind.host{background:#1d3a2e;color:#8ff0c2}
+.pid{font-family:var(--mono);color:var(--dim);font-size:12.5px}
+.state{margin-left:auto;font-size:12px;color:var(--dim)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint);margin-right:5px;vertical-align:1px}
+.dot.on{background:var(--accent)} .dot.pause{background:var(--warn)} .dot.off{background:var(--bad)}
+.kv{display:grid;grid-template-columns:92px 1fr;gap:3px 10px;font-size:13px}
+.kv .k{color:var(--faint);font-size:12px;padding-top:1px}
+.kv .v{min-width:0;overflow-wrap:anywhere}
+.mono{font-family:var(--mono);font-size:12.5px}
+.tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:10px;border:1px solid var(--line);color:var(--dim);margin:1px 4px 1px 0}
+.tag.warn{border-color:#6b4a17;color:#ffd68a} .tag.ok{border-color:#2e6b4f;color:#9ff0c8} .tag.bad{border-color:#6b2a35;color:#ffb3c0}
+.bar{height:5px;background:#0b0d12;border-radius:3px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.empty{color:var(--faint);padding:30px;text-align:center}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d2330;border:1px solid var(--line);padding:8px 14px;border-radius:8px;display:none;z-index:9}
+@media (max-width:520px){ main{padding:12px 16px 30px} .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <b>SDR PILOT</b><span class="sub">running copies</span>
+  <span class="sp"></span>
+  <button class="btn warn" id="pause-idle" title="Pause every chat copy that has been idle for 10+ minutes and runs no flowgraph">pause idle chats</button>
+  <button class="btn" id="forget" title="Remove ended copies from the list">clear ended</button>
+  <a class="btn" href="./">← dashboard</a>
+</header>
+<main>
+  <div class="summary" id="summary"></div>
+  <div class="grid" id="grid"><div class="empty">Loading…</div></div>
+</main>
+<div id="toast"></div>
+<script>
+const KEY = document.querySelector('meta[name="sdrpilot-key"]').content;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(m){ const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = "none", 2600); }
+async function getJ(p){ const r = await fetch(p, {headers:{"X-SDRPilot-Key": KEY}}); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }
+async function postJ(p, body, pid){
+  const r = await fetch(p + (pid ? "?session=" + pid : ""), {method:"POST", headers:{"Content-Type":"application/json","X-SDRPilot-Key":KEY}, body:JSON.stringify(body||{})});
+  const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || ("HTTP " + r.status)); return d;
+}
+const ago = t => { if (!t) return "—"; const s = Date.now()/1000 - t; return s < 60 ? Math.round(s) + " s ago" : s < 3600 ? Math.round(s/60) + " min ago" : (s/3600).toFixed(1) + " h ago"; };
+const dur = t => { if (!t) return "—"; const s = Date.now()/1000 - t; return s < 3600 ? Math.round(s/60) + " min" : (s/3600).toFixed(1) + " h"; };
+const mhz = f => f ? (f/1e6).toFixed(4) + " MHz" : "—";
+const msps = r => r ? (r/1e6).toFixed(r % 1e6 ? 2 : 0) + " MS/s" : "—";
+let data = [], selfPid = null;
+
+function card(s){
+  const r = s.radio || {}, alive = s.alive, host = s.kind === "host";
+  const st = !alive ? ["off", "ended"] : r.state === "paused" ? ["pause", "radio paused"] : r.state === "connected" ? ["on", "reading the radio"] : ["", "radio idle"];
+  const port = s.port || (s.url ? (s.url.match(/:(\d+)\//) || [])[1] : "");
+  const slow = r.state === "connected" && r.measured_rate && r.sample_rate && r.measured_rate < 0.85 * r.sample_rate;
+  const load = r.state === "connected" && r.measured_rate ? r.measured_rate * 2 * ((r.bits || 8) / 8) / 1e6 : 0;
+  const tags = [];
+  if (s.old_code) tags.push(`<span class="tag bad" title="started before this page existed - restart it to get the latest code">old code</span>`);
+  else if (s.code_update) tags.push(`<span class="tag warn" title="${esc((s.code_update.files || []).join(", "))}">update pending (${(s.code_update.files || []).length} files)</span>`);
+  else if (alive) tags.push(`<span class="tag ok">code current</span>`);
+  if (s.is_self) tags.push(`<span class="tag">this page</span>`);
+  if (s.agent && s.agent.busy) tags.push(`<span class="tag ok">agent working</span>`);
+  const jobs = s.jobs || [];
+  const task = s.task || {};
+  const rows = [
+    ["Version", `<span class="mono">${esc(s.version || "?")}</span> ${tags.join("")}`],
+    ["Dashboard", port ? `<span class="mono">:${esc(port)}</span> ${alive && s.url ? `<a href="${esc(s.url)}" target="_blank">open</a>` : ""}` : "—"],
+    ["Radio", r.state === "connected" || r.state === "paused" ? `${mhz(r.center_freq)} · ${msps(r.sample_rate)}${r.hw ? " · " + esc(r.hw) : ""}` : esc(r.state || "—")],
+  ];
+  if (r.state === "connected") rows.push(["Stream", `<span class="${slow ? "mono" : "mono"}" style="${slow ? "color:var(--warn)" : ""}">${msps(r.measured_rate)} of ${msps(r.sample_rate)}</span>${r.protocol ? ` · ${esc(r.protocol)} ${r.bits || ""}-bit` : ""}${load ? ` · ${load.toFixed(0)} MB/s` : ""}${slow ? ` <span class="tag warn">falling behind</span>` : ""}`]);
+  if (host && s.agent) rows.push(["AI", s.agent.model ? `${esc(s.agent.label || "")} · <span class="mono">${esc(s.agent.model)}</span>` : "dashboard agent (no model picked)"]);
+  rows.push(["Task", task.goal ? `${esc(task.goal)}${task.finished ? ' <span class="tag ok">finished</span>' : ""}<div class="bar"><i style="width:${Math.round((task.progress || 0) * 100)}%"></i></div>` : '<span style="color:var(--faint)">none</span>']);
+  rows.push(["Flowgraphs", jobs.length ? jobs.map(j => `<span class="tag ok">${esc(j.id)} · ${esc(j.name)}</span>`).join("") : '<span style="color:var(--faint)">none running</span>']);
+  rows.push(["Activity", `last ${ago(s.last_activity)}${s.started ? ` · up ${dur(s.started)}` : ""}${!alive ? ` · heartbeat ${ago(s.heartbeat)}` : ""}`]);
+  const acts = [];
+  if (alive){
+    if (s.url && !s.is_self) acts.push(`<a class="btn" href="${esc(s.url)}" target="_blank">open dashboard</a>`);
+    if (!s.old_code){
+      if (r.state === "paused") acts.push(`<button class="btn go" data-act="resume">resume radio</button>`);
+      else acts.push(`<button class="btn warn" data-act="pause" title="Stop reading the IQ stream until resumed - its AI is told it was paused">pause radio</button>`);
+      if (jobs.length) acts.push(`<button class="btn warn" data-act="stop_jobs">stop flowgraphs (${jobs.length})</button>`);
+      if (host) acts.push(`<button class="btn ${s.code_update ? "go" : ""}" data-act="restart">restart</button>`);
+      acts.push(`<button class="btn bad" data-act="stop">${host ? "stop host" : "stop"}</button>`);
+    } else if (host) acts.push(`<button class="btn bad" data-act="oldstop">stop host</button>`);
+  } else acts.push(`<button class="btn" data-act="forget">remove</button>`);
+  return `<div class="card ${alive ? "" : "ended"} ${s.is_self ? "self" : ""}" data-pid="${esc(s.pid)}">
+    <div class="top"><span class="kind ${host ? "host" : ""}">${host ? "background host" : "chat"}</span><span class="pid">pid ${esc(s.pid)}</span>
+      <span class="state"><span class="dot ${st[0]}"></span>${st[1]}</span></div>
+    <div class="kv">${rows.map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join("")}</div>
+    <div class="acts">${acts.join("")}</div></div>`;
+}
+
+function render(){
+  const alive = data.filter(s => s.alive);
+  const reading = alive.filter(s => (s.radio || {}).state === "connected");
+  const load = reading.reduce((a, s) => a + ((s.radio.measured_rate || 0) * 2 * (((s.radio.bits || 8)) / 8)), 0) / 1e6;
+  const slow = reading.filter(s => s.radio.measured_rate && s.radio.sample_rate && s.radio.measured_rate < 0.85 * s.radio.sample_rate);
+  $("summary").innerHTML = `<span><b>${alive.length}</b> running</span><span><b>${reading.length}</b> reading the radio</span>` +
+    `<span>stream load <b>${load.toFixed(0)} MB/s</b></span>` + (slow.length ? `<span class="warn">${slow.length} falling behind - pause copies you don't need</span>` : "") +
+    `<span><b>${data.length - alive.length}</b> ended</span>`;
+  $("grid").innerHTML = data.length ? data.map(card).join("") : `<div class="empty">No SDR Pilot copies found.</div>`;
+}
+
+async function refresh(){
+  try { const d = await getJ("api/instances"); data = d.instances || []; selfPid = d.self; render(); }
+  catch(e){ $("grid").innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+const CONFIRM = {
+  stop: s => s.kind === "host" ? "Stop the background host? The dashboard agent, its flowgraphs and the phone/Tailscale dashboard stop until you open SDR Pilot again." :
+    "Stop this chat's SDR Pilot? Its flowgraphs stop and that Claude chat loses its SDR tools until Claude restarts the server (usually on its next tool call, or when you restart Claude).",
+  restart: () => "Restart the background host to load the current code? Its running flowgraphs stop.",
+  stop_jobs: () => "Stop this copy's running flowgraphs?",
+};
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const pid = +b.closest("[data-pid]").dataset.pid, s = data.find(x => x.pid === pid) || {};
+  const act = b.dataset.act;
+  if (CONFIRM[act] && !confirm(CONFIRM[act](s))) return;
+  b.disabled = true;
+  try {
+    if (act === "forget") await postJ("api/sessions/forget", {pid});
+    else if (act === "restart") await postJ("api/host/restart", {}, pid);
+    else if (act === "oldstop") await postJ("api/host/stop", {user: true}, pid);
+    else await postJ("api/instance/" + act, {}, pid);
+    toast({pause: "Paused", resume: "Resumed", stop: "Stopping…", stop_jobs: "Flowgraphs stopped", restart: "Restarting…", forget: "Removed", oldstop: "Stopping…"}[act] || "Done");
+  } catch(err){ toast(err.message); }
+  setTimeout(refresh, act === "restart" ? 4000 : 800);
+});
+$("forget").onclick = async () => { try { const r = await postJ("api/sessions/forget", {}); toast(`Removed ${r.removed.length}`); refresh(); } catch(e){ toast(e.message); } };
+$("pause-idle").onclick = async () => {
+  const idle = data.filter(s => s.alive && s.kind !== "host" && !s.old_code && (s.radio || {}).state === "connected" && !(s.jobs || []).length && Date.now()/1000 - (s.last_activity || 0) > 600);
+  if (!idle.length) return toast("No idle chats reading the radio");
+  if (!confirm(`Pause ${idle.length} idle chat cop${idle.length > 1 ? "ies" : "y"}? They stop reading the radio until resumed.`)) return;
+  for (const s of idle){ try { await postJ("api/instance/pause", {}, s.pid); } catch(e){} }
+  toast(`Paused ${idle.length}`); refresh();
+};
+refresh();
+setInterval(() => { if (!document.hidden) refresh(); }, 2500);
+</script>
+</body>
+</html>

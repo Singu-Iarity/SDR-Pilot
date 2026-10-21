@@ -1,0 +1,108 @@
+{
+ "_about": "ADS-B / Mode S aircraft decoder (1090 MHz) using the installed gr-adsb blocks, laid out like gr-adsb's own adsb_rx example: magnitude -> framer -> demod -> decoder. Each aircraft update (ICAO address, callsign, altitude, speed, heading, position) becomes a decoded record: the job summary's 'decoded' table and the dashboard's Decoded view. gr-adsb needs exactly 2 MS/s; the resampler converts whatever rate the radio runs at (tune with sample_rate=2e6 to skip it).",
+ "requires": [
+  "adsb_framer",
+  "adsb_demod",
+  "adsb_decoder"
+ ],
+ "spec": {
+  "name": "adsb_rx",
+  "title": "ADS-B receiver (gr-adsb)",
+  "variables": {
+   "adsb_fs": 2000000.0,
+   "threshold": 0.01
+  },
+  "blocks": [
+   {
+    "name": "src",
+    "type": "sdr_source",
+    "note": "live IQ - tune the radio to 1090 MHz first"
+   },
+   {
+    "name": "rs",
+    "type": "mmse_resampler_xx",
+    "params": {
+     "type": "complex",
+     "phase_shift": "0",
+     "resamp_ratio": "samp_rate/adsb_fs"
+    },
+    "note": "gr-adsb works at exactly 2 MS/s (ratio 1.0 = pass-through)"
+   },
+   {
+    "name": "mag",
+    "type": "blocks_complex_to_mag_squared",
+    "note": "pulse power"
+   },
+   {
+    "name": "framer",
+    "type": "adsb_framer",
+    "params": {
+     "fs": "adsb_fs",
+     "threshold": "threshold"
+    },
+    "note": "finds the Mode S preamble; raise threshold if it triggers on noise"
+   },
+   {
+    "name": "demod",
+    "type": "adsb_demod",
+    "params": {
+     "fs": "adsb_fs"
+    },
+    "note": "PPM bits -> message"
+   },
+   {
+    "name": "dec",
+    "type": "adsb_decoder",
+    "params": {
+     "msg_filter": "\"All Messages\"",
+     "error_corr": "\"Conservative\"",
+     "print_level": "\"None\""
+    },
+    "note": "CRC check + decode; each aircraft update goes to the data sink"
+   },
+   {
+    "name": "null",
+    "type": "blocks_null_sink",
+    "params": {
+     "type": "float"
+    },
+    "note": "the demod's sample output isn't needed"
+   },
+   {
+    "name": "out",
+    "type": "sp_data_sink",
+    "params": {
+     "kind": "'adsb'",
+     "key": "'icao'"
+    },
+    "note": "aircraft -> SPDATA records (job summary 'decoded' + dashboard Decoded view table)"
+   }
+  ],
+  "connections": [
+   "src -> rs",
+   "rs -> mag",
+   "mag -> framer",
+   "framer -> demod",
+   "demod:0 -> null:0",
+   "demod:demodulated -> dec:demodulated",
+   "dec:decoded -> out:in"
+  ]
+ },
+ "use_when": "decoding aircraft ADS-B / Mode S transponders at 1090 MHz (callsigns, altitude, positions)",
+ "keywords": [
+  "ads-b",
+  "adsb",
+  "mode s",
+  "mode-s",
+  "1090",
+  "aircraft",
+  "airplane",
+  "planes",
+  "flight",
+  "transponder"
+ ],
+ "variables_help": {
+  "adsb_fs": "rate gr-adsb runs at - leave at 2e6",
+  "threshold": "framer detection threshold on |IQ|^2 (0.01 default; raise if noise triggers it, lower for weak planes)"
+ }
+}
