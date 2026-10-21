@@ -1,10 +1,13 @@
-# Builds the Windows installer and publishes it as a GitHub Release whenever a tag v<build> is pushed
-# (build = the stamp in sdrpilot/BUILD, e.g. v0.9.0.20261021.1335). Installed copies of SDR Pilot pick the
-# release up as an update; the .sha256 file next to the installer is required by the updater.
+# Builds the Windows installer and publishes it as a GitHub Release (tag v<build>) whenever a commit on main
+# changes the build stamp in sdrpilot/BUILD (e.g. 0.9.0.20261021.1335) - or on demand (Actions -> Release -> Run
+# workflow). Installed copies of SDR Pilot pick the release up as an update; the .sha256 file next to the
+# installer is required by the updater. A build that already has a release is skipped.
 name: Release
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: ["sdrpilot/BUILD", ".github/workflows/release.yml"]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -12,23 +15,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Tag must match sdrpilot/BUILD
+      - name: Which build, and is it released already?
+        id: b
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           B="$(cat sdrpilot/BUILD)"
-          if [ "v$B" != "$GITHUB_REF_NAME" ]; then echo "tag $GITHUB_REF_NAME doesn't match sdrpilot/BUILD ($B)"; exit 1; fi
+          echo "build=$B" >> "$GITHUB_OUTPUT"
+          if gh release view "v$B" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v$B is already released - nothing to do"; echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install NSIS
+        if: steps.b.outputs.skip != '1'
         run: sudo apt-get update -q && sudo apt-get install -y -q nsis
       - name: Build the installer
+        if: steps.b.outputs.skip != '1'
         run: sh installer/build.sh --keep-build
       - name: Name it by build, add its SHA-256
+        if: steps.b.outputs.skip != '1'
         run: |
           B="$(cat sdrpilot/BUILD)"; V="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' sdrpilot/__init__.py)"
           mkdir -p dist
           cp "installer/SDR-Pilot-Setup-$V.exe" "dist/SDR-Pilot-Setup-$B.exe"
           cd dist && sha256sum "SDR-Pilot-Setup-$B.exe" > "SDR-Pilot-Setup-$B.exe.sha256" && cat *.sha256
       - name: Publish the release
+        if: steps.b.outputs.skip != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --title "SDR Pilot $GITHUB_REF_NAME" \
-            --notes-file RELEASE_NOTES.md
+          B="${{ steps.b.outputs.build }}"
+          gh release create "v$B" dist/* --target "$GITHUB_SHA" --title "SDR Pilot $B" --notes-file RELEASE_NOTES.md
