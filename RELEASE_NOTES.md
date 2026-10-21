@@ -1,3 +1,6 @@
+- **Speed warning for local models:** when a model's generation speed collapses (e.g. 25 → 4 tokens/s), the dashboard says so once, with what to do. That pattern means the model ran out of GPU memory and spilled into system RAM.
+- Reasoning display reads its setting once per reply and tracks <think> tags incrementally (no per-token rescans or file reads).
+
 - **"Python bindings ... are out of sync" fixed:** git on Windows turned the source's LF line endings into CRLF, which changes every header's fingerprint, so GNU Radio's CMake refused the module (for gr-lte, all 33 binding files). Sources are now downloaded without that conversion, and before configuring, SDR Pilot restores line endings (or updates the stored fingerprint for headers its own porter edited).
 
 - **gr-lte (and other C++ modules) on Windows: Python bindings fixed.** castxml, which generates the bindings, emulates MSVC, so Boost took its old-MSVC preprocessor path and binding generation failed for nearly every block (only 2 of ~40 got bindings). SDR Pilot now tells castxml it has a conforming preprocessor (`_MSVC_TRADITIONAL=0`).

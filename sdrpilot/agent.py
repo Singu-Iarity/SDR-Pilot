@@ -1368,6 +1368,29 @@ class DashboardAgent:
                           "prompt_tps": round(new / ttft) if ttft and new else None,
                           "gen_tokens": out, "gen_s": round(gen_s, 2) if gen_s else None,
                           "gen_tps": round(out / gen_s, 1) if gen_s and out else None}
+        self._check_speed(out, gen_s, pt)
+
+    def _check_speed(self, out: int, gen_s: float | None, prompt_tokens: int) -> None:
+        """A local model whose generation speed collapses (e.g. 25 -> 4 tok/s) has almost always run out of GPU
+        memory: its context cache spilled into system RAM. Say so once, with what to do about it."""
+        if not out or not gen_s or out < 30 or not self._is_local(self.conf()):
+            return
+        tps = out / gen_s
+        key = str(self.conf().get("model") or "")
+        best = getattr(self, "_best_tps", {})
+        self._best_tps = best
+        b = best.get(key, 0.0)
+        if tps > b:
+            best[key] = tps
+            return
+        if b >= 8 and tps < 0.45 * b and time.time() - getattr(self, "_speed_warned", 0) > 1800:
+            self._speed_warned = time.time()
+            self.board.chat_add("system", (
+                f"Generation slowed from {b:.0f} to {tps:.1f} tokens/s with a ~{prompt_tokens:,}-token prompt. That "
+                "usually means the model ran out of GPU memory and part of it spilled into system RAM. In LM Studio: "
+                "eject and reload the model (clears old conversations it keeps cached), set Max Concurrent "
+                "Predictions to 1, or lower the context length / quantize the KV cache. Settings ⚙ → Dashboard "
+                "agent → Context size can also cap how long SDR Pilot lets the conversation grow."))
 
     def _stream(self, c: dict, url: str, body: dict) -> dict:
         """Chat Completions with stream=true: the reply appears on the dashboard as it's written, with prompt
@@ -1404,6 +1427,8 @@ class DashboardAgent:
             return self._post(c, url, body, self._openai_headers(c))
         text, reasoning, calls, usage, finish = [], [], {}, {}, None
         self._thought_mid = None
+        self._show_r = bool(self.conf().get("show_reasoning", True))   # read once per reply, not per token
+        tk = {"mode": "none", "start": 0, "cut": 0, "th": ""}
         ttft = None
         t_first = None
         ntok = 0
@@ -1453,12 +1478,30 @@ class DashboardAgent:
                         reasoning.append(piece_r)
                         ntok += 1
                         self._set_infer(phase="thinking", gen_tokens=ntok, progress=1.0)
-                        self._thought("".join(reasoning))
+                        if self._thought_due():
+                            self._thought("".join(reasoning))
                     if piece_t:
                         text.append(piece_t)
                         ntok += 1
-                        th, vis = _split_think("".join(text))
-                        if th:
+                        joined = "".join(text)
+                        # <think>...</think> inside the reply, tracked incrementally (no rescans of the whole text)
+                        if tk["mode"] == "none":
+                            st = joined.lstrip()
+                            if st.startswith("<think>"):
+                                tk["mode"], tk["start"] = "open", len(joined) - len(st) + 7
+                            elif "</think>" in joined[-(len(piece_t) + 9):]:   # tag opened by the chat template
+                                i = joined.find("</think>")
+                                tk.update(mode="closed", th=joined[:i], cut=i + 8)
+                        elif tk["mode"] == "open" and "</think>" in joined[-(len(piece_t) + 9):]:
+                            i = joined.find("</think>", tk["start"])
+                            tk.update(mode="closed", th=joined[tk["start"]:i], cut=i + 8)
+                        if tk["mode"] == "open":
+                            th, vis = joined[tk["start"]:], ""
+                        elif tk["mode"] == "closed":
+                            th, vis = tk["th"], joined[tk["cut"]:]
+                        else:
+                            th, vis = "", joined
+                        if th and self._thought_due():
                             self._thought("".join(reasoning) + th)
                         if vis.strip():
                             self._live_text(vis)
@@ -1498,10 +1541,17 @@ class DashboardAgent:
             finish = "stop"
         return {"choices": [{"message": msg, "finish_reason": finish}], "usage": usage}
 
+    def _thought_due(self) -> bool:
+        return getattr(self, "_show_r", True) and (getattr(self, "_thought_mid", None) is None
+                                                   or time.time() - getattr(self, "_thought_last", 0) > 0.4)
+
     def _thought(self, text: str, done: bool = False) -> None:
         """The model's reasoning in the dashboard chat as a collapsible 'thinking' bubble, updated as it streams.
         Shown only - it is never sent back to the model."""
-        if not text.strip() or not self.conf().get("show_reasoning", True):
+        show = getattr(self, "_show_r", None)
+        if show is None:
+            show = bool(self.conf().get("show_reasoning", True))
+        if not text.strip() or not show:
             return
         now = time.time()
         tail = text if len(text) <= THOUGHT_MAX else "…" + text[-THOUGHT_MAX:]
