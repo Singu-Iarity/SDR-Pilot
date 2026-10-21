@@ -78,7 +78,7 @@ class Config:
     # Where captures, flowgraphs, job outputs, images and saved recipes go ("" = inside the workspace)
     data_dir: str = ""
     # Updates: GitHub repository whose Releases carry SDR-Pilot-Setup-<build>.exe ("owner/repo"; empty = no checks)
-    update_repo: str = ""
+    update_repo: str = "Singu-Iarity/SDR-Pilot"
     update_check_hours: float = 6.0
     ring_seconds: float = 2.0
     ring_max_samples: int = 24_000_000

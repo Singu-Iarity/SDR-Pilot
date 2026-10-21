@@ -572,4 +572,29 @@ MIT, see `LICENSE`.
 
 It uninstalls from Windows' "Installed apps" list, and asks before deleting your data.
 
-To rebuild it (on Linux: `apt install nsis`), run `makensis -DVERSION=0.9.0 installer/sdrpilot_setup.nsi`.
+**Download:** the newest installer is on the [Releases page](https://github.com/Singu-Iarity/SDR-Pilot/releases/latest).
+
+## Updates
+
+Installed copies check this repository's Releases every few hours. When a newer build is out, the dashboard shows a
+banner: **Download & install** fetches the installer, checks its SHA-256, and updates SDR Pilot in place (your
+settings, captures, flowgraphs and chats are kept). Nothing installs without your click. Settings (⚙) → Updates
+shows the installed build and can check now; `update_repo` in `sdrpilot_config.json` changes the source (empty =
+no checks).
+
+Every build carries a stamp in `sdrpilot/BUILD` (e.g. `0.9.0.20261021.1335`). The installer, the running app and
+the dashboard all compare that stamp, so an update by the installer, by copying files in, or by the dashboard's
+restart button is recognised the same way, and an open dashboard reloads itself afterwards.
+
+## Building and publishing (maintainers)
+
+- `installer/build.sh` stamps a new build and builds the installer (`apt install nsis` on Linux).
+- `installer/publish.sh owner/repo "notes"` publishes it as a GitHub Release (needs the `gh` CLI), uploading
+  `SDR-Pilot-Setup-<build>.exe` with its `.sha256`. Installers without a checksum are refused by the updater.
+- The desktop window (`SDR Pilot.exe`) is built from `launcher/` (Rust, tao + wry):
+  `cargo build --release --target x86_64-pc-windows-gnu`.
+
+## Contributing
+
+Fork the repository, make your change on a branch, and open a pull request. Please keep SDR Pilot receive-only:
+no transmit features. Run `python selftest.py` (simulator, no radio needed) before sending changes.
