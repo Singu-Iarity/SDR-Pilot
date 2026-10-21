@@ -396,11 +396,36 @@ def pick_branch(owner: str, repo: str, gr_installed: str) -> tuple[str, str, lis
     return default, "the default branch", names
 
 
-def find_forks(owner: str, repo: str, gr_installed: str, limit: int = 6) -> list[dict]:
-    """Forks that look ported to GNU Radio 3.9+ (pybind11 bindings or a 3.9/3.10 branch), newest first."""
+# ports to GNU Radio 3.10 that are known to build and include their Python bindings - tried before any search
+# (module name -> [(owner/repo, branch)])
+KNOWN_PORTED = {
+    "lte": [("bkerler/gr-lte", "maint-3.10")],
+}
+
+
+def find_forks(owner: str, repo: str, gr_installed: str, limit: int = 6, module: str = "") -> list[dict]:
+    """Forks that look ported to GNU Radio 3.9+ (pybind11 bindings or a 3.9/3.10 branch), best first. Searches the
+    whole fork network: if owner/repo is itself a fork, the forks of the ORIGINAL repo too (a 3.10 port usually
+    forks the original, not another fork)."""
     from .ootbuild import gr_major
     major = gr_major(gr_installed)
+    known = []
+    core = (module or re.sub(r"^(gr-|gnuradio-)", "", repo, flags=re.I)).lower().replace("-", "_")
+    for full, br in KNOWN_PORTED.get(core, []):
+        if full.lower() != f"{owner}/{repo}".lower():
+            known.append({"repo": full, "branch": br, "pushed": "", "stars": None,
+                          "why": "known GNU Radio 3.10 port with pybind11 bindings"})
     forks = _gh(f"/repos/{owner}/{repo}/forks?sort=newest&per_page=40")
+    try:
+        root = (_gh(f"/repos/{owner}/{repo}").get("source") or {}).get("full_name")
+    except Exception:
+        root = None
+    if root and root.lower() != f"{owner}/{repo}".lower():
+        try:
+            forks = forks + [f for f in _gh(f"/repos/{root}/forks?sort=newest&per_page=60")
+                             if f.get("full_name", "").lower() != f"{owner}/{repo}".lower()]
+        except Exception:
+            pass
     forks = [f for f in forks if (f.get("pushed_at") or "") >= "2021"][:limit * 2]
     forks.sort(key=lambda f: (-(f.get("stargazers_count") or 0), f.get("pushed_at") or ""), reverse=False)
     out = []
@@ -431,7 +456,8 @@ def find_forks(owner: str, repo: str, gr_installed: str, limit: int = 6) -> list
                             "stars": f.get("stargazers_count"),
                             "why": "pybind11 bindings (3.9+)" if has_bind else f"branch '{br}'"})
                 break
-    return out
+    seen = {k["repo"].lower() for k in known}
+    return known + [f for f in out if f["repo"].lower() not in seen]
 
 
 def _rmtree(path: str) -> bool:
@@ -691,10 +717,14 @@ class Installs:
         if porting and not local and an["language"] == "C++":
             self._stage(job, "compatibility", "looking for a fork already ported to this GNU Radio")
             try:
-                forks = find_forks(owner, repo, gr_inst)
+                forks = find_forks(owner, repo, gr_inst, module=an.get("name") or "")
             except Exception as e:
-                forks = []
-                self._cmd(job, None, note=f"fork search failed: {e}")
+                forks = [{"repo": full, "branch": br, "pushed": "", "stars": None,
+                          "why": "known GNU Radio 3.10 port with pybind11 bindings"}
+                         for full, br in KNOWN_PORTED.get(str(an.get("name") or "").lower(), [])]
+                self._cmd(job, None, note=f"fork search failed: {e}" + (" - trying the known port" if forks else ""))
+            if not forks:
+                self._cmd(job, None, note="no fork ported to this GNU Radio found - porting it automatically")
             rep["ported_forks"] = forks[:5]
             for fk in forks[:2]:
                 fo, fr = fk["repo"].split("/")

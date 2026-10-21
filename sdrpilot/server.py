@@ -3212,10 +3212,20 @@ def oot_install(target: str, method: str = "auto", branch: str = "", use_one_blo
     if method not in ("auto", "conda", "pip", "source"):
         raise ValueError("method: 'auto', 'conda', 'pip' or 'source'")
     mod = _module_of(target)
+    broken: list = []
     if mod and not branch:
         grc.refresh_if_changed(force=True)
         have = [k for k in grc.platform().blocks if k.lower().startswith(mod + "_")]
-        if have:  # already there: no reinstall - just make sure it's easy to use
+        if have:
+            try:
+                miss, tot = _missing_bindings(mod)
+            except Exception:
+                miss, tot = [], 0
+            if tot and len(miss) >= max(2, tot // 5):
+                broken = miss   # the install is incomplete: rebuild it rather than reporting "already installed"
+                log.info("gr-%s is installed but %d of %d blocks have no Python binding - reinstalling", mod,
+                         len(miss), tot)
+        if have and not broken:  # already there: no reinstall - just make sure it's easy to use
             res = _make_module_usable(mod, [os.path.abspath(os.path.expanduser(target))]
                                       if os.path.isdir(os.path.expanduser(target)) else [])
             res["already_installed"] = (f"gr-{mod} is already installed ({len(have)} blocks) - nothing reinstalled. "
@@ -3289,6 +3299,8 @@ def oot_install(target: str, method: str = "auto", branch: str = "", use_one_blo
         BOARD.chat_add("system", "🔧 " + msg)
     BOARD.note(msg, "event")
     out = {**{k: v for k, v in job.items() if k not in ("pid", "report")},
+           **({"reinstalling_because": f"the installed gr-{mod} is incomplete: {len(broken)} block(s) have no Python "
+                                       f"binding (e.g. {', '.join(broken[:4])}) - rebuilding it"} if broken else {}),
            "blocks": [b["id"] for b in info.get("blocks", [])][:40],
            "next": f"oot_status(id='{job['id']}', wait_s=60) until installed (source builds take minutes), then "
                    "gnuradio_search_blocks"}
@@ -4036,8 +4048,43 @@ def gnuradio_run(name: str, duration_s: Optional[float] = None, wait_s: float = 
     return res
 
 
+def _missing_bindings(mod: str) -> tuple[list[str], int]:
+    """Blocks of an installed OOT module that GRC lists but whose Python class doesn't exist (an install whose
+    binding generation failed): (missing class names, blocks checked)."""
+    import importlib
+    try:
+        pm = importlib.import_module(f"gnuradio.{mod}")
+    except Exception:
+        return [], 0
+    names = set()
+    for k, B in list(grc.platform().blocks.items()):
+        if not k.lower().startswith(mod + "_"):
+            continue
+        try:
+            make = str((getattr(B, "templates", None) or {}).get("make", "") or "")
+        except Exception:
+            continue
+        names.update(re.findall(rf"\b{re.escape(mod)}\.(\w+)\s*\(", make))
+    missing = sorted(n for n in names if not hasattr(pm, n))
+    return missing, len(names)
+
+
 def _job_notes(res):
     """Say plainly when a finished job wrote no output files, so the AI reads the log instead of hunting for files."""
+    m = re.search(r"module 'gnuradio\.(\w+)' has no attribute '(\w+)'", str((res or {}).get("log_tail", ""))) \
+        if isinstance(res, dict) else None
+    if m:
+        mod = m.group(1)
+        try:
+            miss, tot = _missing_bindings(mod)
+        except Exception:
+            miss, tot = [], 0
+        res["module_problem"] = (
+            f"gr-{mod}'s Python bindings are incomplete: '{m.group(2)}' (and {max(len(miss) - 1, 0)} more of {tot} "
+            f"blocks) exist in GRC but not in Python, so no flowgraph can create them. This is an install problem, "
+            f"not a flowgraph problem - don't edit the flowgraph. Reinstall the module: oot_install('gr-{mod}') "
+            f"(it notices the broken install and rebuilds it, preferring a fork already ported to this GNU Radio), "
+            f"then poll oot_status and run the flowgraph again.")
     if isinstance(res, dict) and res.get("status") == "running" and not res.get("decoded") and \
             float(res.get("runtime_s") or 0) > 25 and re.search(r"rds|adsb|aprs|decod|ble|packet|pager",
                                                                 str(res.get("flowgraph", "")), re.I):
