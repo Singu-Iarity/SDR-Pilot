@@ -3336,6 +3336,32 @@ def _module_of(target: str) -> str:
     return re.sub(r"[^A-Za-z0-9_]+", "_", t).strip("_").lower()
 
 
+def _refresh_outdated_examples() -> None:
+    """Modules whose examples were imported by an older example fixer: import them again (and recompile their hier
+    blocks), so fixes reach flowgraphs that were already broken. Runs once, in the background, when the host starts."""
+    from . import ootexamples
+    try:
+        reg = _oot().registry()
+    except Exception:
+        return
+    for mod, ent in list((reg.get("modules") or {}).items()):
+        if not ent.get("made_usable") or int(ent.get("examples_fixer") or 1) >= ootexamples.FIXER_VERSION:
+            continue
+        dirs = list(ent.get("src_dirs") or [])
+        for pat in (f"gr-{mod}*", f"{mod}*"):   # where oot_install built it
+            for d in glob.glob(os.path.join(CFG.workspace, "oot_build", pat, "src", "*")) + \
+                    glob.glob(os.path.join(CFG.workspace, "oot_build", pat, "ported", "*")):
+                if os.path.isdir(d) and d not in dirs:
+                    dirs.append(d)
+        try:
+            out = _make_module_usable(mod, dirs)
+            log.info("re-imported %s examples with example fixer %s: %s hier blocks compiled", mod,
+                     ootexamples.FIXER_VERSION, len(out.get("hier_blocks_compiled") or []))
+            BOARD.note(f"Re-imported gr-{mod}'s example flowgraphs with fixes", "event")
+        except Exception:
+            log.exception("re-importing %s examples failed", mod)
+
+
 def _make_module_usable(module: str, src_dirs: list | None = None) -> dict:
     """After an install (or for one installed earlier): reload the block list, compile the module's example hier
     blocks and turn its example flowgraphs into recipes, then say how to use it."""
@@ -3347,7 +3373,8 @@ def _make_module_usable(module: str, src_dirs: list | None = None) -> dict:
     reg = _oot().registry()
     ent = reg.setdefault("modules", {}).setdefault(module, {})
     ent.update(blocks=out["blocks"][:200], example_recipes=[r["recipe"] for r in out["recipes_from_examples"]],
-               made_usable=time.time())
+               made_usable=time.time(), examples_fixer=ootexamples.FIXER_VERSION,
+               src_dirs=sorted(set((ent.get("src_dirs") or []) + [d for d in (src_dirs or []) if d and os.path.isdir(d)])))
     _oot()._save(reg)
     tips = []
     if out["recipes_from_examples"]:
@@ -4860,6 +4887,7 @@ def main(argv: list[str] | None = None) -> None:
     global AGENT, _first_use_done
     if a.host:
         _replace_old_hosts()
+        _threading.Timer(30.0, _refresh_outdated_examples).start()
         try:
             from . import codecheck as _cc
             _cc.sync_install_registry()

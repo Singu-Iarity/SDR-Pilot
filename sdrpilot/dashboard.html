@@ -248,6 +248,12 @@ ol.steps .n{grid-column:2;color:var(--dim);font-size:12px}
 .tcard .det .dh button{font:11px var(--ui);background:none;border:1px solid var(--line);color:var(--dim);border-radius:6px;padding:1px 8px;cursor:pointer;text-transform:none;letter-spacing:0}
 .tcard .det pre{margin:0;max-height:320px;overflow:auto;background:#0b0e14;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:calc(var(--chat-fs) * .76)/1.45 var(--mono);color:#c3c8d4;white-space:pre-wrap;word-break:break-word}
 .tcard .det .nt{color:var(--faint);font-size:.9em}
+.msg.thought{align-self:flex-start;max-width:94%;background:transparent;border:1px dashed #3a3156;border-radius:10px;padding:4px 10px;color:var(--dim);font-size:calc(var(--chat-fs) * .82)}
+.msg.thought summary{cursor:pointer;color:#a99bd6;list-style:revert;user-select:none}
+.msg.thought .tt{white-space:pre-wrap;margin-top:6px;max-height:260px;overflow:auto;font:calc(var(--chat-fs) * .78) var(--mono);line-height:1.45;color:#9aa1b4}
+.msg.thought.streaming .tt{overflow:hidden;display:flex;flex-direction:column-reverse}
+.msg.thought.streaming summary{animation:thpulse 1.6s ease-in-out infinite}
+@keyframes thpulse{50%{opacity:.55}}
 .msg.system{align-self:center;max-width:94%;text-align:center;font-size:calc(var(--chat-fs) * .86);color:var(--faint);background:transparent;padding:2px 8px}
 .typing{align-self:flex-start;padding:10px 14px;border-radius:14px;background:var(--panel2);display:flex;gap:4px}
 .typing i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:blink 1.2s infinite}
@@ -305,6 +311,8 @@ pre.log{margin:6px 0 0;padding:8px;background:#0a0c11;border-radius:6px;max-heig
 #fg-wrap{position:relative;height:440px;background:radial-gradient(circle at 1px 1px,#1d2230 1px,transparent 0) 0 0/22px 22px,#0d1016;cursor:grab;overflow:hidden;touch-action:none}
 #fg-wrap:active{cursor:grabbing}
 #fg-svg{display:block;width:100%;height:100%}
+#fg-svg .fg-drag{cursor:grab}
+#fg-svg .fg-drag:active{cursor:grabbing}
 #fg-key{position:absolute;left:10px;bottom:10px;z-index:3;background:rgba(14,18,26,.92);border:1px solid var(--line);border-radius:8px;padding:6px 10px 7px;font:11.5px/1.5 var(--ui);color:var(--dim);max-width:270px;cursor:default}
 #fg-key[hidden]{display:none}
 #fg-key .kh{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--faint);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;user-select:none}
@@ -645,6 +653,13 @@ async function getJ(p){
   if (r.status === 401) { location.reload(); throw new Error("auth"); }
   return r.json();
 }
+// the model's reasoning bubbles: remember which ones the user opened (or closed while it was still thinking)
+const thoughtOpen = new Set(), thoughtClosed = new Set();
+document.addEventListener("click", e => {   // only the user's own clicks count (re-renders don't)
+  const sm = e.target.closest && e.target.closest("details.thought > summary"); if (!sm) return;
+  const d = sm.parentNode, id = +d.dataset.tid, willOpen = !d.open;
+  if (willOpen){ thoughtOpen.add(id); thoughtClosed.delete(id); } else { thoughtOpen.delete(id); thoughtClosed.add(id); }
+}, true);
 // ---------------------------------------------------------------- "updated on disk, still running old code" banner
 let updKey = "";
 function showUpdate(s){
@@ -1175,6 +1190,12 @@ function renderChat(s){
     if (m.role === "tool" && toolCards()) return toolCard(m);
     if (m.role === "tool") return `<div class="msg tool ${m.status||""}">${m.status === "running" ? '<span class="spin"></span> ' : ""}${esc(m.text)}${m.result ? `<span class="r">${esc(m.result)}</span>` : ""}</div>`;
     if (m.role === "system") return `<div class="msg system">${esc(m.text)}</div>`;
+    if (m.role === "thought"){
+      const open = m.streaming ? !thoughtClosed.has(m.id) : thoughtOpen.has(m.id);
+      const k = m.chars ? (m.chars > 1000 ? (m.chars / 1000).toFixed(1) + "k" : m.chars) + " chars" : "";
+      const body = m.streaming && m.text.length > 1800 ? "…" + m.text.slice(-1800) : m.text;   // live: the latest lines
+      return `<details class="msg thought${m.streaming ? " streaming" : ""}" data-tid="${m.id}"${open ? " open" : ""}><summary>💭 ${m.streaming ? "thinking…" : "reasoning"}${m.secs ? ` · ${m.secs} s` : ""}${k ? " · " + k : ""}</summary><div class="tt">${esc(body)}</div></details>`;
+    }
     return `<div class="msg ${m.role}${m.streaming ? " streaming" : ""}"><span class="who">${m.role === "agent" ? esc(ag.model || "agent") : "AI chat"}</span>${md(m.text)}</div>`;
   }).join("");
   if (busy && !ag.infer && !msgs.some(m => m.streaming)) html += '<div class="typing"><i></i><i></i><i></i></div>';
@@ -1380,6 +1401,7 @@ async function renderAgentSettings(){
     <div class="row"><label>Images</label><select id="ag-vision">${[["auto", "auto" + (st.vision_detected === true ? " (vision model detected - sending images)" : st.vision_detected === false ? " (no vision detected - not sending)" : st.vision ? " (sending images)" : " (not sending images)")], ["on", "always send tool images to the model"], ["off", "never send images"]].map(([v, l]) => `<option value="${v}" ${(st.vision_mode || "auto") === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
     <div class="row"><label>Context size</label><input type="number" id="ag-ctx" min="0" step="1024" value="${(st.settings||{}).context_tokens || ""}" placeholder="auto"><span id="ag-ctxinfo" style="font-size:12px;color:var(--dim)"></span></div>
     <div class="row"><label>Tool descriptions</label><select id="ag-tools">${[["auto","auto (short when the context is under 64k)"],["full","full"],["short","short + tool_help (saves ~4k tokens)"]].map(([v,l]) => `<option value="${v}" ${((st.settings||{}).tool_detail||"auto") === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+    <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-think" ${(st.settings||{}).show_reasoning !== false ? "checked" : ""}> show the model's reasoning in the chat (models that think: Qwen3.x, gpt-oss, DeepSeek, Gemma 4 with thinking on...). Never sent back to the model.</label></div>
     <div class="row" style="align-items:flex-start"><label>Your instructions</label><textarea id="ag-ci" rows="7" style="flex:1;min-width:0;font:12px var(--mono)" placeholder="Added to the AI's system prompt: your station (SDR, antenna, location), how you like answers, what to avoid. Keep it short - it uses context on every request.">${esc((st.settings||{}).custom_instructions || "")}</textarea></div>
     <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-compact" ${(st.settings||{}).compact_history !== false ? "checked" : ""}> when the context is ~85% full, compact older tool results together with moving out old turns - in one go, so the model's prompt cache keeps working (full copies are kept; the AI can reread them)</label></div>
     <div class="row"><label></label><label style="min-width:0"><input type="checkbox" id="ag-nudge" ${(st.settings||{}).nudge !== false ? "checked" : ""}> nudge the model when it says what it'll do but doesn't do it</label></div>
@@ -1397,7 +1419,7 @@ async function renderAgentSettings(){
     const body = {action:"config", preset:$("ag-preset").value, base_url:$("ag-base").value, model:$("ag-model").value, vision_mode:$("ag-vision").value,
       context_tokens: $("ag-ctx").value || 0, tool_detail: $("ag-tools").value, compact_history: $("ag-compact").checked, nudge: $("ag-nudge").checked,
       auto_recover: $("ag-recover").checked, stream: $("ag-stream").checked, max_reply_tokens: $("ag-maxout").value,
-      custom_instructions: $("ag-ci").value};
+      custom_instructions: $("ag-ci").value, show_reasoning: $("ag-think").checked};
     if ($("ag-key").value.trim()) body.api_key = $("ag-key").value.trim();
     try { await postJ("api/agent", body, host.pid); toast("Saved"); renderAgentSettings(); } catch(e){ $("ag-msg").innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
   };
@@ -1779,6 +1801,7 @@ function portY(b, i, n, size){ const span = size.h - 16; return b.y + 8 + (n ===
 function drawFlowgraph(d){
   const svg = $("fg-svg"); svg.innerHTML = "";
   if (d && d.blocks && d.blocks.length > 2 && $("fg-wrap").clientWidth < 640) d = stackLayout(d);
+  const canDrag = !!(d && d === fgState.data && !d.error);   // not in the phone layout (positions there are made up)
   $("fg-msg").style.display = d && d.blocks && d.blocks.length ? "none" : "flex";
   if (d && d.error){ $("fg-msg").textContent = d.error; $("fg-msg").style.display = "flex"; drawKey(null); return; }
   if (!d || !d.blocks){ drawKey(null); return; }
@@ -1818,6 +1841,7 @@ function drawFlowgraph(d){
     b.params.forEach((p, i) => el("text", {x:b.x + 10, y:b.y + 36 + i*15, fill:"#a9b0c0", "font-size":11, "font-family":"Cascadia Mono, Consolas, monospace"}, g, `${p[0]}: ${p[1]}`));
     if (!b.variable) el("text", {x:b.x + s.w - 6, y:b.y + s.h + 12, fill:"#5b6273", "font-size":10, "text-anchor":"end", "font-family":"Cascadia Mono, Consolas, monospace"}, g, b.name);
     tipOf.set(g, blockTip(b));
+    if (canDrag){ g.classList.add("fg-drag"); g.addEventListener("pointerdown", e => fgDragStart(e, b)); }
     const port = (x, y, pt, isOpen, out) => { const c = dcol(pt.domain === "message" ? "message" : pt.dtype);
       const r = el("rect", {x, y:y - 6, width:9, height:12, rx:2, fill: isOpen ? "#0d1016" : c, stroke: isOpen ? c : "none", "stroke-width": 1.6, class: isOpen ? "fg-open" : ""}, g);
       const hit = el("rect", {x: x - 4, y: y - 9, width: 17, height: 18, fill: "transparent"}, g);
@@ -1841,6 +1865,31 @@ function drawFlowgraph(d){
     : d.valid ? '<span class="pill-ok">✓ valid</span>' : '<span class="pill-bad">✕ errors</span>';
   drawBuildLog(d);
   drawKey(d);
+}
+// drag a block to move it; the new position is saved into the .grc (and GRC / the AI see it too)
+function fgDragStart(e, b){
+  if (e.button !== 0 || !fgState.data) return;
+  e.stopPropagation(); e.preventDefault();
+  const svg = $("fg-svg"), inv = svg.getScreenCTM().inverse();
+  const toSvg = (cx, cy) => { const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy; return pt.matrixTransform(inv); };
+  const p0 = toSvg(e.clientX, e.clientY), x0 = b.x, y0 = b.y; let moved = false, raf = 0;
+  fgState.dragging = true; $("fg-tip").style.display = "none";
+  const move = ev => {
+    const p = toSvg(ev.clientX, ev.clientY);
+    if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < 3) return;
+    moved = true;
+    b.x = Math.max(0, Math.round((x0 + p.x - p0.x) / 8) * 8); b.y = Math.max(0, Math.round((y0 + p.y - p0.y) / 8) * 8);
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawFlowgraph(fgState.data); });
+  };
+  const up = async () => {
+    removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up);
+    fgState.dragging = false;
+    if (!moved) return;
+    fgState.userMove = Date.now(); drawFlowgraph(fgState.data);
+    try { await postJ("api/flowgraph/move", {name: fgState.name, moves: {[b.name]: [b.x, b.y]}}, sess); }
+    catch(err){ toast("Couldn't save the new position: " + err.message, 5000); b.x = x0; b.y = y0; drawFlowgraph(fgState.data); }
+  };
+  addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
 }
 function drawBuildLog(d){
   const box = $("fg-log"), hist = d.history || [];
@@ -1958,7 +2007,7 @@ async function pollFlowgraphs(){
         sel.value = want;
         const info = r.flowgraphs.find(f => f.name === want) || {};
         const key = want + "|" + info.mtime + "|" + info.running_job;
-        if (key !== fgState.key){
+        if (key !== fgState.key && !fgState.dragging){
           if (want !== fgState.name) fgState.vb = null;
           fgState.name = want; fgState.key = key;
           const d = await getJ("api/flowgraph?name=" + encodeURIComponent(want));

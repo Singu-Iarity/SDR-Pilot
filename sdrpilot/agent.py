@@ -44,7 +44,22 @@ CHARS_PER_TOKEN = 3.5      # rough, for budgeting before the provider reports re
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "0.0.0.0", "[::1]")
 DEFAULT_SETTINGS = {"context_tokens": 0, "tool_detail": "auto", "compact_history": True, "nudge": True, "stream": True,
                     "auto_recover": True, "max_reply_tokens": 16384,
-                    "custom_instructions": ""}
+                    "custom_instructions": "", "show_reasoning": True}
+THOUGHT_MAX = 12000   # characters of a model's reasoning kept for the dashboard (the end, if longer)
+
+
+def _split_think(s: str) -> tuple[str, str]:
+    """Reasoning some models write into the reply itself: '<think>...</think>answer' (or just '...</think>answer'
+    when the chat template opened the tag). Returns (reasoning, the rest)."""
+    if not s:
+        return "", s
+    m = re.match(r"\s*<think>(.*?)(</think>|$)(.*)", s, re.S)
+    if m:
+        return m.group(1), m.group(3) if m.group(2) else ""
+    if "</think>" in s and "<think>" not in s:
+        a, b = s.split("</think>", 1)
+        return a, b
+    return "", s
 MAX_REPLY_CAP = 65536
 # errors servers return when the prompt doesn't fit the model's context
 CONTEXT_ERR_RE = re.compile(r"context (length|window|size|limit)|n_ctx|too many tokens|maximum context|prompt is too long|"
@@ -207,6 +222,7 @@ class DashboardAgent:
         self._no_stream = False
         self._no_progress_flag = False
         self._live_mid = None
+        self._thought_mid = None
         self._max_out = 16384
         self._pub_t = 0.0
         self._lms = None                 # LM Studio server-log reader (exact prompt progress), started when needed
@@ -320,7 +336,8 @@ class DashboardAgent:
     def configure(self, preset: str | None = None, base_url: str | None = None, model: str | None = None,
                   api_key: str | None = None, vision: bool | None = None, context_tokens=None, vision_mode=None,
                   tool_detail: str | None = None, compact_history=None, nudge=None, stream=None,
-                  auto_recover=None, max_reply_tokens=None, custom_instructions: str | None = None) -> dict:
+                  auto_recover=None, max_reply_tokens=None, custom_instructions: str | None = None,
+                  show_reasoning=None) -> dict:
         s = self._settings()
         if preset:
             if preset not in PRESETS:
@@ -356,6 +373,8 @@ class DashboardAgent:
             s["auto_recover"] = bool(auto_recover)
         if max_reply_tokens not in (None, ""):
             s["max_reply_tokens"] = max(1024, min(int(float(max_reply_tokens)), MAX_REPLY_CAP))
+        if show_reasoning is not None:
+            s["show_reasoning"] = bool(show_reasoning)
         if custom_instructions is not None:
             s["custom_instructions"] = str(custom_instructions).strip()[:6000]
         self._budget_cache = None
@@ -681,6 +700,7 @@ class DashboardAgent:
             self._shrink(budget)
             thinking = self.board.chat_add("status", "thinking…")
             self._live_mid = None
+            self._thought_mid = None
             try:
                 resp = await asyncio.to_thread(self._complete, system, tools, self._prepared())
             except AgentError as e:
@@ -1194,6 +1214,13 @@ class DashboardAgent:
         ch = (resp.get("choices") or [{}])[0]
         m = ch.get("message") or {}
         content = []
+        if isinstance(m.get("content"), str):   # plain (non-streamed) replies: reasoning written into the reply
+            th, vis = _split_think(m["content"])
+            if th:
+                m["content"] = vis
+            rs = str(m.get("reasoning_content") or m.get("reasoning") or "") + th
+            if rs.strip() and getattr(self, "_thought_mid", None) is None:
+                self._thought(rs, done=True)
         if m.get("content"):
             txt = m["content"] if isinstance(m["content"], str) else " ".join(
                 p.get("text", "") for p in m["content"] if isinstance(p, dict))
@@ -1376,6 +1403,7 @@ class DashboardAgent:
         except urllib.error.URLError:
             return self._post(c, url, body, self._openai_headers(c))
         text, reasoning, calls, usage, finish = [], [], {}, {}, None
+        self._thought_mid = None
         ttft = None
         t_first = None
         ntok = 0
@@ -1425,11 +1453,18 @@ class DashboardAgent:
                         reasoning.append(piece_r)
                         ntok += 1
                         self._set_infer(phase="thinking", gen_tokens=ntok, progress=1.0)
+                        self._thought("".join(reasoning))
                     if piece_t:
                         text.append(piece_t)
                         ntok += 1
-                        self._live_text("".join(text))
-                        self._set_infer(phase="writing", gen_tokens=ntok, progress=1.0)
+                        th, vis = _split_think("".join(text))
+                        if th:
+                            self._thought("".join(reasoning) + th)
+                        if vis.strip():
+                            self._live_text(vis)
+                            self._set_infer(phase="writing", gen_tokens=ntok, progress=1.0)
+                        else:
+                            self._set_infer(phase="thinking", gen_tokens=ntok, progress=1.0)
                     for tc in tcs:
                         slot = calls.setdefault(tc.get("index", 0), {"id": None, "name": "", "args": []})
                         if tc.get("id"):
@@ -1451,7 +1486,10 @@ class DashboardAgent:
         if not usage.get("prompt_tokens"):  # server didn't report usage: keep budgeting on the estimate
             usage = {"prompt_tokens": (self.infer or {}).get("prompt_tokens", 0), "completion_tokens": ntok}
         self._finish_infer(usage, ttft, gen_s, ntok)
-        msg = {"role": "assistant", "content": "".join(text) or None}
+        th, vis = _split_think("".join(text))
+        if reasoning or th:
+            self._thought("".join(reasoning) + th, done=True)
+        msg = {"role": "assistant", "content": vis or None}
         if calls:
             msg["tool_calls"] = [{"id": s["id"] or f"call_{time.time_ns()}_{i}", "type": "function",
                                   "function": {"name": s["name"], "arguments": "".join(s["args"]) or "{}"}}
@@ -1459,6 +1497,23 @@ class DashboardAgent:
         if self.cancel.is_set() and not finish:
             finish = "stop"
         return {"choices": [{"message": msg, "finish_reason": finish}], "usage": usage}
+
+    def _thought(self, text: str, done: bool = False) -> None:
+        """The model's reasoning in the dashboard chat as a collapsible 'thinking' bubble, updated as it streams.
+        Shown only - it is never sent back to the model."""
+        if not text.strip() or not self.conf().get("show_reasoning", True):
+            return
+        now = time.time()
+        tail = text if len(text) <= THOUGHT_MAX else "…" + text[-THOUGHT_MAX:]
+        if getattr(self, "_thought_mid", None) is None:
+            self._thought_t0, self._thought_last = now, now
+            self._thought_mid = self.board.chat_add("thought", tail, streaming=not done,
+                                                    chars=len(text), secs=0.0 if done else None)
+            return
+        if done or now - getattr(self, "_thought_last", 0) > 0.4:
+            self._thought_last = now
+            self.board.chat_update(self._thought_mid, text=tail, streaming=not done, chars=len(text),
+                                   secs=round(now - self._thought_t0, 1))
 
     def _live_text(self, text: str) -> None:
         """Show the reply in the dashboard chat while it is being written (tool calls written as text are

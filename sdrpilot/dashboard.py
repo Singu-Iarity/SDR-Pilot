@@ -743,7 +743,8 @@ class Dashboard:
                                      compact_history=body.get("compact_history"), nudge=body.get("nudge"),
                                      stream=body.get("stream"), auto_recover=body.get("auto_recover"),
                                      max_reply_tokens=body.get("max_reply_tokens"),
-                                     custom_instructions=body.get("custom_instructions"))
+                                     custom_instructions=body.get("custom_instructions"),
+                                     show_reasoning=body.get("show_reasoning"))
             elif act == "models":
                 info = self.agent.list_models_info()
                 return {"ok": True, "models": [m["id"] for m in info], "details": info}
@@ -894,6 +895,8 @@ class Dashboard:
             a = self.board.answer_user_action(int(body.get("id")), str(body.get("answer") or "done"),
                                               str(body.get("note") or ""))
             return {"ok": True, "action": a}
+        if path == "/api/flowgraph/move":
+            return self.flowgraph_move(str(body.get("name") or ""), body.get("moves") or {})
         if path == "/api/update/check":
             return self.updater.check(force=True)
         if path == "/api/update/repo":
@@ -1153,6 +1156,57 @@ class Dashboard:
                 data = {**data, "avg": np.round(10 * np.log10(np.mean(10 ** (a / 10), axis=1)), 1).tolist(),
                         "max": np.round(m.max(axis=1), 1).tolist()}
         return data
+
+    def flowgraph_move(self, name: str, moves: dict) -> dict:
+        """Blocks the user dragged in the flowgraph view: save their new positions into the .grc (what GNU Radio
+        Companion shows) and into SDR Pilot's own copy of the layout, so the AI's next edit keeps them."""
+        import yaml
+        from . import grc
+        m = self.jobs.meta(name)
+        path = m.get("grc")
+        if not path or not os.path.exists(path):
+            raise RuntimeError("only GNU Radio Companion flowgraphs can be rearranged here (this one is Python code)")
+        clean = {}
+        for k, v in (moves or {}).items():
+            if isinstance(v, (list, tuple)) and len(v) >= 2:
+                clean[str(k)] = [int(round(max(0.0, float(v[0])))), int(round(max(0.0, float(v[1]))))]
+        if not clean:
+            raise ValueError("nothing to move")
+        with grc.GRC_LOCK:
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+            if "<flow_graph>" in text[:400]:
+                raise RuntimeError("this is an old GNU Radio 3.7 (XML) flowgraph - open it in GRC to rearrange it")
+            data = yaml.safe_load(text) or {}
+            hit = []
+            for b in data.get("blocks") or []:
+                if b.get("name") in clean:
+                    st = b.get("states")
+                    if not isinstance(st, dict):
+                        st = b["states"] = {}
+                    st["coordinate"] = clean[b["name"]]
+                    hit.append(b["name"])
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
+            os.replace(tmp, path)
+            side = os.path.join(os.path.dirname(path), "sdrpilot.json")
+            try:
+                with open(side, encoding="utf-8") as f:
+                    meta = json.load(f)
+                for sb in (meta.get("spec") or {}).get("blocks") or []:
+                    if sb.get("name") in clean:
+                        sb["pos"] = clean[sb["name"]]
+                with open(side + ".tmp", "w", encoding="utf-8") as f:
+                    json.dump(meta, f, indent=2)
+                os.replace(side + ".tmp", side)
+            except (OSError, ValueError):
+                pass
+            try:
+                grc._DESCRIBE_CACHE.clear()
+            except Exception:
+                pass
+        return {"ok": True, "moved": hit, "missing": sorted(set(clean) - set(hit))}
 
     def update_status(self) -> dict:
         """Release check for the banner: answered at once; a due check runs in the background."""

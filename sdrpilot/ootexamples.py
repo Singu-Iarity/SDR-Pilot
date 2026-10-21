@@ -63,6 +63,10 @@ def _parse(platform, path: str) -> dict | None:
         return None
 
 
+# bump when fixed_copy learns a new fix: modules whose examples were imported with an older fixer are redone
+FIXER_VERSION = 2
+_QUOTED_NAME = re.compile(r"""^\s*(['"])([A-Za-z_]\w*(?:\.\w+)*)\1\s*$""")
+
 PARAM_TYPES = {"string": "str", "int": "intx", "real": "eng_float", "float": "eng_float", "raw": "",
                "complex": "complex", "long": "long"}
 
@@ -82,6 +86,7 @@ def fixed_copy(platform, path: str, module: str, out_dir: str) -> str:
     import yaml
     data = _plain(platform.parse_flow_graph(path))
     mod = re.escape(module)
+    names = {str(b.get("name")) for b in data.get("blocks", []) if b.get("name")}
     for b in data.get("blocks", []):
         ps = b.get("parameters") or {}
         if b.get("id") == "import" and ps.get("imports"):
@@ -99,6 +104,17 @@ def fixed_copy(platform, path: str, module: str, out_dir: str) -> str:
                 v = ps.get(k)
                 if dt.endswith("_vector") and isinstance(v, str) and "," in v and not re.match(r"^\s*[\[(]", v):
                     ps[k] = "[" + v.strip() + "]"
+                # a reference to another block or variable that old GRC stored quoted ('"sync_ffofrac_sig"'): 3.10
+                # pastes raw values as-is, so make(self.${sig}) became self."sync_ffofrac_sig" - a SyntaxError
+                m = _QUOTED_NAME.match(v) if isinstance(v, str) and dt in ("raw", "") else None
+                if m:
+                    make = ""
+                    try:
+                        make = str((getattr(B, "templates", None) or {}).get("make", "") or "")
+                    except Exception:
+                        pass
+                    if m.group(2).split(".")[0] in names or re.search(r"self\.\$\{?\s*" + re.escape(k) + r"\b", make):
+                        ps[k] = m.group(2)
         if b.get("id") == "parameter" and str(ps.get("type", "")) in PARAM_TYPES:
             ps["type"] = PARAM_TYPES[str(ps["type"])]
             if ps["type"] == "str" and ps.get("value") and not re.match(r"^['\"]", str(ps["value"])):
