@@ -1132,3 +1132,50 @@ def advice(log_text: str) -> list[str]:
             if t not in out:
                 out.append(t)
     return out
+
+
+_HASH_RE = re.compile(r"BINDTOOL_HEADER_FILE_HASH\(\s*([0-9a-fA-F]{32})\s*\)")
+_HFILE_RE = re.compile(r"BINDTOOL_HEADER_FILE\(\s*([^)\s]+)\s*\)")
+
+
+def sync_binding_hashes(src: str) -> list[str]:
+    """GNU Radio's CMake compares each pybind11 binding file's BINDTOOL_HEADER_FILE_HASH with the MD5 of its header
+    and stops with 'Python bindings for X.h are out of sync' when they differ. Two harmless causes are fixed here:
+    line endings (git/zip tools on Windows turn LF into CRLF - the header is restored to LF), and headers SDR Pilot's
+    own porter edited (API fixes - the stored hash is updated; any real mismatch then shows as a compile error, which
+    oot_build can fix). Returns what was changed."""
+    import hashlib
+    out = []
+    for cc in glob.glob(os.path.join(src, "python", "**", "bindings", "*_python.cc"), recursive=True):
+        try:
+            with open(cc, "r", encoding="utf-8", errors="surrogateescape", newline="") as f:
+                text = f.read()
+        except OSError:
+            continue
+        mh, mf = _HASH_RE.search(text), _HFILE_RE.search(text)
+        if not mh or not mf or mf.group(1) in ("None", "") or mh.group(1) == "0":
+            continue
+        want = mh.group(1).lower()
+        name = mf.group(1)
+        hdr = None
+        for cand in glob.glob(os.path.join(src, "include", "**", name), recursive=True):
+            hdr = cand
+            break
+        if not hdr:
+            continue
+        with open(hdr, "rb") as f:
+            raw = f.read()
+        if hashlib.md5(raw).hexdigest() == want:
+            continue
+        lf = raw.replace(b"\r\n", b"\n")
+        if hashlib.md5(lf).hexdigest() == want:
+            with open(hdr, "wb") as f:
+                f.write(lf)
+            out.append(f"{name}: line endings restored")
+            continue
+        new = hashlib.md5(raw).hexdigest()
+        text2 = text[:mh.start(1)] + new + text[mh.end(1):]
+        with open(cc, "w", encoding="utf-8", errors="surrogateescape", newline="") as f:
+            f.write(text2)
+        out.append(f"{name}: header changed since the bindings were made - hash updated")
+    return out

@@ -649,7 +649,10 @@ class Installs:
             dest = f"{dest}_{int(time.time())}"
         git = shutil.which("git")
         if git:
-            rc = self._cmd(job, [git, "clone", "--depth", "1", "--recursive", *(["--branch", br] if br else []),
+            # keep the files byte-for-byte as published: Windows git otherwise turns LF into CRLF, which changes
+            # every header's MD5 and GNU Radio's CMake then refuses the module ("Python bindings ... are out of sync")
+            rc = self._cmd(job, [git, "-c", "core.autocrlf=false", "-c", "core.eol=lf", "clone", "--depth", "1",
+                                 "--recursive", *(["--branch", br] if br else []),
                                  f"https://github.com/{owner}/{repo}.git", dest])
             if rc == 0:
                 return _module_root(dest)
@@ -792,6 +795,10 @@ class Installs:
             os.path.join(ob.library_prefix(), "bin", "cmake.exe" if os.name == "nt" else "cmake")
         if not os.path.exists(cmake):
             raise RuntimeError("CMake isn't installed - oot_build(action='deps', packages=['cmake','ninja']) first")
+        fixed = ob.sync_binding_hashes(src)
+        if fixed:
+            self._cmd(job, None, note="Python bindings vs. headers: " + "; ".join(fixed[:6])
+                      + (f" (+{len(fixed) - 6} more)" if len(fixed) > 6 else ""))
         build = os.path.join(src, "build")
         prefix = ob.library_prefix()
         ninja = shutil.which("ninja", path=env.get("PATH")) or shutil.which("ninja")
